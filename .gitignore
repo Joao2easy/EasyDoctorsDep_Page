@@ -1,0 +1,17 @@
+﻿# build/output
+.next/
+dist/
+build/
+out/
+.vercel/
+.turbo/
+
+# deps & editor
+node_modules/
+.vscode/
+
+# env & SO
+.env
+.env.*
+.DS_Store
+Thumbs.db
