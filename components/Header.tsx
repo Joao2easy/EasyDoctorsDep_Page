@@ -48,7 +48,8 @@ export default function Header() {
                 alt="EasyDoctors"
                 width={120}
                 height={40}
-                className="h-10 w-auto"
+                style={{ width: 'auto', height: 'auto' }} // Adicionar esta linha
+                className="h-8 w-auto"
                 priority
               />
             </Link>

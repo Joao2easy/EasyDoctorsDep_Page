@@ -122,42 +122,42 @@ const MOCK_PLANS = [
   }
 ];
 
-export async function getPlans(): Promise<any[]> {
+export async function getPlans() {
+  const url = process.env.NEXT_PUBLIC_PLANS_URL;
+  
+  if (!url) {
+    console.warn('NEXT_PUBLIC_PLANS_URL não configurada, usando dados mock');
+    return MOCK_PLANS;
+  }
+
   try {
-    // Tentar buscar da API do Supabase primeiro
-    const response = await fetch(
-      'https://zvpeojnmnmbszncbgudt.supabase.co/rest/v1/Plano?select=*&ativo=is.true',
-      {
-        method: 'GET',
-        headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp2cGVvam5tbm1ic3puY2JndWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NTMyODIsImV4cCI6MjA2NzEyOTI4Mn0.3NB5VhDG_QVikSD0KsWQ9UplX648SKQVl9b-2HgKTFk',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp2cGVvam5tbm1ic3puY2JndWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NTMyODIsImV4cCI6MjA2NzEyOTI4Mn0.3NB5VhDG_QVikSD0KsWQ9UplX648SKQVl9b-2HgKTFk',
-          'Range': '0-9',
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        cache: 'no-store',
-      }
-    );
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    });
 
     if (!response.ok) {
-      throw new Error(`Erro na API Supabase: ${response.status} ${response.statusText}`);
+      throw new Error(`Erro na API: ${response.status}`);
     }
 
     const data = await response.json();
     
-    // Verificar se retornou dados válidos
-    if (Array.isArray(data) && data.length > 0) {
-      console.log('✅ Planos carregados da API Supabase:', data.length);
-      return data;
-    } else {
-      throw new Error('API retornou dados inválidos');
+    // Verificar se a resposta é válida
+    if (!Array.isArray(data)) {
+      console.warn('API retornou dados inválidos, usando dados mock');
+      return MOCK_PLANS;
     }
     
+    console.log('✅ Planos carregados com sucesso da API:', data.length, 'planos');
+    return data;
   } catch (error) {
-    console.warn('⚠️ Erro ao carregar da API Supabase, usando dados mockados:', error);
+    console.error('Erro ao buscar planos:', error);
+    console.log('Usando dados mock como fallback');
     
-    // Fallback para dados mockados
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simular delay
+    // Retornar dados mock em caso de erro
     return MOCK_PLANS;
   }
 }
