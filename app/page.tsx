@@ -71,12 +71,15 @@ export default function HomePage() {
 
   // Obter match atual do wizard (apenas planos principais, não avulso)
   const getCurrentMatch = () => {
-    const filteredPlans = plans.filter(plan => 
-      plan.pessoas === wizardState.people && 
-      plan.duracao_meses === wizardState.duration && 
-      plan.nivel === wizardState.level &&
-      plan.nivel !== "Avulso" // Excluir avulso do match principal
-    );
+    const filteredPlans = plans.filter(plan => {
+      const isMatchingWizard = plan.pessoas === wizardState.people && 
+        plan.duracao_meses === wizardState.duration && 
+        plan.nivel === wizardState.level;
+      
+      const isNotAvulso = plan.nivel !== "Avulso";
+      
+      return isMatchingWizard && isNotAvulso;
+    });
     
     console.log('🔍 Debug getCurrentMatch:', {
       wizardState,

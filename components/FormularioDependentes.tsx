@@ -100,12 +100,8 @@ export default function FormularioDependentes({
     name: "dependentes",
   });
 
-  const handleTelefoneChange = (value: string | undefined, index: number, isTitular: boolean = false) => {
-    if (isTitular) {
-      setValue("titular.telefone", value || "");
-    } else {
-      setValue(`dependentes.${index}.telefone`, value || "");
-    }
+  const handleTelefoneChange = (value: string | undefined, index: number) => {
+    setValue(`dependentes.${index}.telefone`, value || "");
   };
 
   const handleDocumentoChange = (value: string, tipoDocumento: number, index: number, isTitular: boolean = false) => {

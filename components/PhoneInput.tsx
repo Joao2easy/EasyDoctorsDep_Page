@@ -12,7 +12,7 @@ interface PhoneInputProps {
   placeholder?: string;
 }
 
-const PhoneInputComponent = forwardRef<HTMLInputElement, PhoneInputProps>(
+const PhoneInputComponent = forwardRef<any, PhoneInputProps>(
   ({ value, onChange, className, placeholder, ...props }, ref) => {
     const handleChange = (newValue: string | undefined) => {
       if (!newValue) {
