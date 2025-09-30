@@ -70,28 +70,64 @@ function CadastroDependentesContent() {
       setIsLoading(true);
       setError(null);
 
-      // Montar payload final
+      // Montar payload final conforme documentação
       const payload = {
-        ...data,
+        titular: {
+          tipoDocumento: data.titular.tipoDocumento,
+          numeroDocumento: data.titular.numeroDocumento,
+          genero: data.titular.genero,
+        },
+        dependentes: data.dependentes.map(dep => ({
+          nome: dep.nome,
+          telefone: dep.telefone,
+          codigoPais: dep.codigoPais || "BR",
+          email: dep.email,
+          genero: dep.genero,
+          tipoDocumento: dep.tipoDocumento,
+          numeroDocumento: dep.numeroDocumento,
+        })),
+        plano: data.plano,
         quantidadeDependentes,
         customerStripe,
       };
 
       console.log('Payload enviado:', payload);
+      console.log('Webhook URL:', process.env.NEXT_PUBLIC_DEPENDENTES_WEBHOOK_URL);
 
-      // Aqui você pode fazer a requisição para sua API
-      // const response = await fetch('/api/cadastro-dependentes', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(payload),
-      // });
-
-      // Simular envio (remover quando implementar a API)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Fazer requisição para o webhook de dependentes
+      const webhookUrl = process.env.NEXT_PUBLIC_DEPENDENTES_WEBHOOK_URL || 
+                        'https://primary-teste-2d67.up.railway.app/webhook-test/finalizar-cadastros';
       
-      alert('Formulário enviado com sucesso!');
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Erro na API: ${response.status} - ${errorText}`);
+      }
+
+      const resultado = await response.json();
+      console.log('Resposta da API:', resultado);
+      
+      // Verificar se a resposta indica sucesso
+      if (resultado.success || resultado.data) {
+        alert('Formulário enviado com sucesso!');
+        
+        // Se houver URL de redirecionamento, redirecionar
+        if (resultado.data?.checkout_url || resultado.url) {
+          window.location.href = resultado.data?.checkout_url || resultado.url;
+        }
+      } else {
+        throw new Error(resultado.message || 'Erro desconhecido na API');
+      }
       
     } catch (err) {
+      console.error('Erro ao enviar formulário:', err);
       setError(err instanceof Error ? err.message : 'Erro ao enviar formulário');
     } finally {
       setIsLoading(false);
