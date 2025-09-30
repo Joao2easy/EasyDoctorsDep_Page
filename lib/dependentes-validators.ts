@@ -66,7 +66,7 @@ export const pessoaSchema = z.object({
     .max(255, "Email muito longo"),
   genero: z.string()
     .min(1, "Gênero obrigatório"),
-  tipoDocumento: z.number()
+  tipoDocumento: z.coerce.number()
     .min(0)
     .max(3, "Tipo de documento inválido"),
   numeroDocumento: z.string()
@@ -84,7 +84,7 @@ export const pessoaSchema = z.object({
 
 // Schema para titular (apenas 3 campos)
 export const titularSchema = z.object({
-  tipoDocumento: z.number()
+  tipoDocumento: z.coerce.number()
     .min(0)
     .max(3, "Tipo de documento inválido"),
   numeroDocumento: z.string()
