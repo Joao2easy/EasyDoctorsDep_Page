@@ -40,6 +40,12 @@ NEXT_PUBLIC_DEPENDENTES_WEBHOOK_URL=https://primary-teste-2d67.up.railway.app/we
 **Solução**: 
 - O componente está configurado para funcionar no lado do cliente com Suspense
 
+### Problema: CORS - "Access-Control-Allow-Origin" header is missing
+**Solução**: 
+- ✅ Implementado proxy local em `/api/cadastro-dependentes`
+- O frontend agora chama a API local que faz a requisição para o servidor externo
+- Isso evita problemas de CORS pois a requisição é feita server-side
+
 ## Teste Local vs Produção
 
 ### Local

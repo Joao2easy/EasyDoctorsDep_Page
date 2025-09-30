@@ -94,15 +94,13 @@ function CadastroDependentesContent() {
       };
 
       console.log('📦 Payload enviado:', payload);
-      console.log('🔗 Webhook URL:', process.env.NEXT_PUBLIC_DEPENDENTES_WEBHOOK_URL);
 
-      // Fazer requisição para o webhook de dependentes
-      const webhookUrl = process.env.NEXT_PUBLIC_DEPENDENTES_WEBHOOK_URL || 
-                        'https://primary-teste-2d67.up.railway.app/webhook-test/finalizar-cadastros';
+      // Usar proxy local para evitar problemas de CORS
+      const proxyUrl = '/api/cadastro-dependentes';
       
-      console.log('🌐 Fazendo requisição para:', webhookUrl);
+      console.log('🌐 Fazendo requisição para proxy local:', proxyUrl);
       
-      const response = await fetch(webhookUrl, {
+      const response = await fetch(proxyUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
