@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import FormularioDependentes from '@/components/FormularioDependentes';
 import { FormularioData } from '@/lib/dependentes-validators';
@@ -23,7 +23,7 @@ const planos = {
   "108fa0a8-f6fb-46c3-a6b9-e5acce7adcf4": { nome: "Plano 2 para até 4 pessoas - Preferencial (3 meses)", dependentes: 4 }
 };
 
-export default function CadastroDependentesPage() {
+function CadastroDependentesContent() {
   const searchParams = useSearchParams();
   const [quantidadeDependentes, setQuantidadeDependentes] = useState(0);
   const [planoNome, setPlanoNome] = useState('');
@@ -149,5 +149,17 @@ export default function CadastroDependentesPage() {
         />
       </div>
     </div>
+  );
+}
+
+export default function CadastroDependentesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#74237F]"></div>
+      </div>
+    }>
+      <CadastroDependentesContent />
+    </Suspense>
   );
 }

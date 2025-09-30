@@ -9,6 +9,12 @@ const nextConfig = {
     // Ignorar erros de ESLint durante o build
     ignoreDuringBuilds: false,
   },
+  // Configurações para Vercel
+  output: 'standalone',
+  experimental: {
+    // Garantir compatibilidade com Vercel
+    serverComponentsExternalPackages: ['react-phone-number-input'],
+  },
 }
 
 module.exports = nextConfig

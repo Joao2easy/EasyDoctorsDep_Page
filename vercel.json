@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "app/cadastro-dependentes/page.tsx": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/cadastro-dependentes",
+      "destination": "/cadastro-dependentes"
+    }
+  ]
+}

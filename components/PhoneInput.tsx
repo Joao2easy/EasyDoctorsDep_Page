@@ -1,6 +1,6 @@
 "use client";
 
-import React, { forwardRef } from "react";
+import React, { forwardRef, useEffect, useState } from "react";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,12 @@ interface PhoneInputProps {
 
 const PhoneInputComponent = forwardRef<any, PhoneInputProps>(
   ({ value, onChange, className, placeholder, ...props }, ref) => {
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+      setIsMounted(true);
+    }, []);
+
     const handleChange = (newValue: string | undefined) => {
       if (!newValue) {
         onChange?.(newValue);
@@ -35,6 +41,16 @@ const PhoneInputComponent = forwardRef<any, PhoneInputProps>(
 
       onChange?.(newValue);
     };
+
+    if (!isMounted) {
+      return (
+        <input
+          className={cn("flex h-12 w-full rounded-lg border-2 border-gray-200 bg-background px-4 py-3 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-[#74237F] focus:ring-offset-2 focus:border-[#74237F] disabled:cursor-not-allowed disabled:opacity-50 transition-colors", className)}
+          placeholder={placeholder}
+          disabled
+        />
+      );
+    }
 
     return (
       <PhoneInput
