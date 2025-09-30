@@ -6,6 +6,9 @@ import FormularioDependentes from '@/components/FormularioDependentes';
 import { FormularioData } from '@/lib/dependentes-validators';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, Mail, Clock } from "lucide-react";
 
 // Mapeamento de planos conforme documentação
 const planos = {
@@ -22,6 +25,67 @@ const planos = {
   "108fa0a8-f6fb-46c3-a6b9-e5acce7adcf4": { nome: "Plano 2 para até 4 pessoas - Preferencial (3 meses)", dependentes: 4 }
 };
 
+// Modal de Sucesso
+interface SuccessModalProps {
+  open: boolean;
+  onClose: () => void;
+  redirectUrl?: string;
+}
+
+function SuccessModal({ open, onClose, redirectUrl }: SuccessModalProps) {
+  const handleOk = () => {
+    onClose();
+    if (redirectUrl) {
+      window.location.href = redirectUrl;
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-md mx-auto">
+        <DialogHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle className="w-12 h-12 text-green-600" />
+            </div>
+          </div>
+          <DialogTitle className="text-2xl font-bold text-gray-900">
+            Cadastro efetuado com sucesso!
+          </DialogTitle>
+          <DialogDescription className="text-lg text-gray-600 mt-2">
+            Em breve você receberá os próximos passos em seu e-mail.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-6">
+          <div className="flex items-start space-x-3">
+            <Mail className="w-5 h-5 text-[#74237F] mt-1 flex-shrink-0" />
+            <p className="text-sm text-gray-700">
+              Verifique sua caixa de entrada (e spam) para as instruções de acesso.
+            </p>
+          </div>
+          
+          <div className="flex items-start space-x-3">
+            <Clock className="w-5 h-5 text-[#74237F] mt-1 flex-shrink-0" />
+            <p className="text-sm text-gray-600">
+              O e-mail pode levar alguns minutos para chegar.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex justify-center pt-4">
+          <Button
+            onClick={handleOk}
+            className="bg-gradient-to-r from-[#74237F] to-[#8a49a1] hover:from-[#6a1f6f] hover:to-[#7a3d8a] text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-200 shadow-lg"
+          >
+            OK, continuar
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function CadastroDependentesContent() {
   const searchParams = useSearchParams();
   const [quantidadeDependentes, setQuantidadeDependentes] = useState(0);
@@ -29,6 +93,8 @@ function CadastroDependentesContent() {
   const [customerStripe, setCustomerStripe] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [redirectUrl, setRedirectUrl] = useState<string | undefined>();
 
   useEffect(() => {
     const plano = searchParams.get('plano');
@@ -176,12 +242,12 @@ function CadastroDependentesContent() {
       
       // Verificar se a resposta indica sucesso
       if (resultado.success || resultado.data) {
-        alert('Formulário enviado com sucesso!');
+        // Capturar URL de redirecionamento se existir
+        const redirectUrl = resultado.data?.checkout_url || resultado.url;
+        setRedirectUrl(redirectUrl);
         
-        // Se houver URL de redirecionamento, redirecionar
-        if (resultado.data?.checkout_url || resultado.url) {
-          window.location.href = resultado.data?.checkout_url || resultado.url;
-        }
+        // Mostrar modal de sucesso
+        setShowSuccessModal(true);
       } else {
         throw new Error(resultado.message || 'Erro desconhecido na API');
       }
@@ -244,6 +310,13 @@ function CadastroDependentesContent() {
           isLoading={isLoading}
         />
       </div>
+
+      {/* Modal de Sucesso */}
+      <SuccessModal 
+        open={showSuccessModal} 
+        onClose={() => setShowSuccessModal(false)}
+        redirectUrl={redirectUrl}
+      />
     </div>
   );
 }
