@@ -76,7 +76,7 @@ function CadastroDependentesContent() {
       const payload = {
         titular: {
           tipoDocumento: data.titular.tipoDocumento,
-          numeroDocumento: data.titular.numeroDocumento,
+          numeroDocumento: data.titular.numeroDocumento.replace(/\D/g, ''), // Remove pontuação
           genero: data.titular.genero,
         },
         dependentes: data.dependentes.map(dep => {
@@ -99,7 +99,7 @@ function CadastroDependentesContent() {
             email: dep.email,
             genero: dep.genero,
             tipoDocumento: dep.tipoDocumento,
-            numeroDocumento: dep.numeroDocumento,
+            numeroDocumento: dep.numeroDocumento.replace(/\D/g, ''), // Remove pontuação
           };
         }),
         plano: data.plano,
@@ -113,6 +113,17 @@ function CadastroDependentesContent() {
         processado: payload.dependentes.find(p => p.nome === dep.nome)?.telefone,
         codigoPais: payload.dependentes.find(p => p.nome === dep.nome)?.codigoPais
       })));
+      console.log('📄 Documentos processados:', {
+        titular: {
+          original: data.titular.numeroDocumento,
+          processado: payload.titular.numeroDocumento
+        },
+        dependentes: data.dependentes.map(dep => ({
+          nome: dep.nome,
+          original: dep.numeroDocumento,
+          processado: payload.dependentes.find(p => p.nome === dep.nome)?.numeroDocumento
+        }))
+      });
 
       // Fazer POST diretamente para a API externa
       const apiUrl = 'https://primary-production-2441.up.railway.app/webhook/finalizar-cadastros';
