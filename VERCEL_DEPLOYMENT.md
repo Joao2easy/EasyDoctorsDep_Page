@@ -20,6 +20,10 @@ NEXT_PUBLIC_DEPENDENTES_WEBHOOK_URL=https://primary-teste-2d67.up.railway.app/we
 ### 3. Configurações de Runtime
 - **Node.js Version**: 18.x (recomendado)
 
+### 4. Arquivos Removidos
+- ❌ `vercel.json` - removido (não necessário para Next.js App Router)
+- ✅ `next.config.js` - simplificado para compatibilidade com Vercel
+
 ## Problemas Comuns e Soluções
 
 ### Problema: Página não renderiza no Vercel
