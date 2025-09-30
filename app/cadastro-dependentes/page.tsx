@@ -79,21 +79,40 @@ function CadastroDependentesContent() {
           numeroDocumento: data.titular.numeroDocumento,
           genero: data.titular.genero,
         },
-        dependentes: data.dependentes.map(dep => ({
-          nome: dep.nome,
-          telefone: dep.telefone,
-          codigoPais: dep.codigoPais || "BR",
-          email: dep.email,
-          genero: dep.genero,
-          tipoDocumento: dep.tipoDocumento,
-          numeroDocumento: dep.numeroDocumento,
-        })),
+        dependentes: data.dependentes.map(dep => {
+          // Extrair código do país do telefone (ex: +5511999999999 -> +55)
+          let codigoPais = "+55"; // Default Brasil
+          let telefoneSemCodigo = dep.telefone;
+          
+          if (dep.telefone.startsWith('+55')) {
+            codigoPais = "+55";
+            telefoneSemCodigo = dep.telefone.substring(3); // Remove +55
+          } else if (dep.telefone.startsWith('+1')) {
+            codigoPais = "+1";
+            telefoneSemCodigo = dep.telefone.substring(2); // Remove +1
+          }
+          
+          return {
+            nome: dep.nome,
+            telefone: telefoneSemCodigo,
+            codigoPais: codigoPais,
+            email: dep.email,
+            genero: dep.genero,
+            tipoDocumento: dep.tipoDocumento,
+            numeroDocumento: dep.numeroDocumento,
+          };
+        }),
         plano: data.plano,
         quantidadeDependentes,
         customerStripe,
       };
 
       console.log('📦 Payload enviado:', payload);
+      console.log('📱 Telefones processados:', data.dependentes.map(dep => ({
+        original: dep.telefone,
+        processado: payload.dependentes.find(p => p.nome === dep.nome)?.telefone,
+        codigoPais: payload.dependentes.find(p => p.nome === dep.nome)?.codigoPais
+      })));
 
       // Fazer POST diretamente para a API externa
       const apiUrl = 'https://primary-production-2441.up.railway.app/webhook/finalizar-cadastros';
@@ -117,8 +136,33 @@ function CadastroDependentesContent() {
         throw new Error(`Erro na API: ${response.status} - ${errorText}`);
       }
 
-      const resultado = await response.json();
-      console.log('✅ Resposta da API:', resultado);
+      // Verificar se há conteúdo na resposta antes de tentar fazer parse JSON
+      const responseText = await response.text();
+      console.log('📄 Resposta bruta da API:', responseText);
+
+      let resultado;
+      if (responseText.trim()) {
+        try {
+          resultado = JSON.parse(responseText);
+          console.log('✅ Resposta da API (JSON):', resultado);
+        } catch (parseError) {
+          console.warn('⚠️ Resposta não é JSON válido:', responseText);
+          // Se não for JSON, tratar como sucesso se o status for 200
+          if (response.status === 200) {
+            resultado = { success: true, message: 'Formulário enviado com sucesso!' };
+          } else {
+            throw new Error('Resposta inválida da API');
+          }
+        }
+      } else {
+        console.warn('⚠️ Resposta vazia da API');
+        // Se a resposta estiver vazia mas o status for 200, considerar sucesso
+        if (response.status === 200) {
+          resultado = { success: true, message: 'Formulário enviado com sucesso!' };
+        } else {
+          throw new Error('Resposta vazia da API');
+        }
+      }
       
       // Verificar se a resposta indica sucesso
       if (resultado.success || resultado.data) {
