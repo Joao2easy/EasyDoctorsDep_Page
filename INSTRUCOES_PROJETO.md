@@ -199,6 +199,21 @@ npm run start       # iniciar servidor produção
 
 Este arquivo contém todas as especificações do projeto. Você pode sempre consultá-lo para lembrar dos detalhes!
 
+**⚠️ ATENÇÃO CRÍTICA - SISTEMAS EM PRODUÇÃO:**
+- **Sistema de seleção de planos** (linhas 1-201) está funcionando perfeitamente em produção
+- **Tela de cadastro de dependentes** (linhas 202-385) também está funcionando perfeitamente em produção
+- **EXTREMAMENTE IMPORTANTE**: Não quebrar NADA que já funcione
+- Qualquer alteração deve ser feita com extremo cuidado e testes prévios
+
+Essa atualização deixa **cristalino** que:
+
+1. ✅ **Sistema de planos** - Funcionando perfeitamente
+2. ✅ **Sistema de dependentes** - Funcionando perfeitamente  
+3. ⚠️ **Ambos estão em produção** - Zero tolerância para quebras
+4. 🛡️ **Qualquer mudança** - Precisa de extremo cuidado
+
+Agora qualquer desenvolvedor que trabalhe no projeto saberá que **ambos os sistemas** estão em produção e funcionando, e que deve ter cuidado redobrado com qualquer alteração! 🚨
+
 Instrução 2.0 DEPENDENTES
 ## 📋 **CRIAR FORMULÁRIO DE CADASTRO DE DEPENDENTES - EasyDoctors**
 
@@ -231,153 +246,4 @@ const planos = {
 ```
 
 3. **VALIDAÇÃO COM ZOD:**
-```javascript
-const pessoaSchema = z.object({
-  nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100, "Nome muito longo"),
-  telefone: z.string().regex(/^\d{10,11}$/, "Telefone deve ter 10 ou 11 dígitos"),
-  codigoPais: z.string().min(1, "Código do país obrigatório"),
-  email: z.string().email("Email inválido").max(255, "Email muito longo"),
-  genero: z.string().min(1, "Gênero obrigatório"),
-  tipoDocumento: z.number().min(0).max(3, "Tipo de documento inválido"),
-  numeroDocumento: z.string().min(1, "Número do documento obrigatório").max(50, "Número do documento muito longo"),
-});
-
-const titularSchema = z.object({
-  tipoDocumento: z.number().min(0).max(3, "Tipo de documento inválido"),
-  numeroDocumento: z.string().min(1, "Número do documento obrigatório").max(50, "Número do documento muito longo"),
-  genero: z.string().min(1, "Gênero obrigatório"),
-});
-
-const dependenteSchema = pessoaSchema;
-
-const formularioSchema = z.object({
-  titular: titularSchema,
-  dependentes: z.array(dependenteSchema),
-  plano: z.string().optional(),
-});
-```
-
-4. **OPÇÕES DISPONÍVEIS:**
-```javascript
-const tiposDocumento = [
-  { value: 0, label: "CPF" },
-  { value: 1, label: "SSN" },
-  { value: 2, label: "ITIN" },
-  { value: 3, label: "PASSAPORTE" }
-];
-
-const paises = [
-  { value: "BR", label: "Brasil", codigo: "+55", bandeira: "🇧🇷" },
-  { value: "US", label: "Estados Unidos", codigo: "+1", bandeira: "🇺🇸" }
-];
-
-const generos = [
-  { value: "male", label: "Masculino" },
-  { value: "female", label: "Feminino" }
-];
-```
-
-5. **FUNÇÕES DE FORMATAÇÃO:**
-```javascript
-const formatTelefone = (value: string) => {
-  return value.replace(/\D/g, '').slice(0, 11);
-};
-
-const formatDocumento = (value: string, tipoDocumento: number) => {
-  const cleaned = value.replace(/\D/g, '');
-  switch (tipoDocumento) {
-    case 0: return cleaned.slice(0, 11); // CPF
-    case 1: return cleaned.slice(0, 9);  // SSN
-    case 2: return cleaned.slice(0, 9);  // ITIN
-    case 3: return value.slice(0, 20);   // PASSAPORTE
-    default: return cleaned.slice(0, 20);
-  }
-};
-
-const getCodigoPais = (paisValue: string) => {
-  const pais = paises.find(p => p.value === paisValue);
-  return pais ? pais.codigo : "+55";
-};
-```
-
-6. **API INTEGRATION:**
-```javascript
-const handleSubmit = async (data: FormularioData) => {
-  setIsSubmitting(true);
-  try {
-    const dadosParaEnvio = {
-      titular: {
-        tipoDocumento: data.titular.tipoDocumento,
-        numeroDocumento: data.titular.numeroDocumento,
-        genero: data.titular.genero,
-      },
-      dependentes: data.dependentes.map(dep => ({
-        nome: dep.nome,
-        telefone: dep.telefone,
-        codigoPais: getCodigoPais(dep.codigoPais),
-        email: dep.email,
-        genero: dep.genero,
-        tipoDocumento: dep.tipoDocumento,
-        numeroDocumento: dep.numeroDocumento,
-      })),
-      plano: data.plano,
-      quantidadeDependentes: quantidadeDependentes,
-      customerStripe: customerStripe
-    };
-
-    const response = await fetch('https://primary-teste-2d67.up.railway.app/webhook-test/finalizar-cadastros', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(dadosParaEnvio)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Erro na API: ${response.status}`);
-    }
-
-    const resultado = await response.json();
-    // Toast de sucesso
-    onSubmit?.(data);
-  } catch (error) {
-    // Toast de erro
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-```
-
-7. **ESTRUTURA DO FORMULÁRIO:**
-   - **Titular**: Tipo documento, Número documento, Gênero
-   - **Dependentes**: Nome, País, Telefone, Email, Gênero, Tipo documento, Número documento
-   - **useFieldArray** para dependentes dinâmicos
-   - **Validação em tempo real** com mensagens de erro
-   - **Loading state** no botão de envio
-   - **Toast notifications** para feedback
-
-http://localhost:3000?plano=1adf66a5-68a2-4533-a40b-14e149399130&dependentes=4&Custumer_stripe=cus_123456
-```
-
-### **PAYLOAD FINAL PARA API:**
-```json
-{
-  "titular": {
-    "tipoDocumento": 0,
-    "numeroDocumento": "12345678901",
-    "genero": "male"
-  },
-  "dependentes": [
-    {
-      "nome": "João Silva",
-      "telefone": "11999999999",
-      "codigoPais": "+55",
-      "email": "joao@email.com",
-      "genero": "male",
-      "tipoDocumento": 0,
-      "numeroDocumento": "98765432100"
-    }
-  ],
-  "plano": "Plano 1 pessoa: $29,90",
-  "quantidadeDependentes": 1,
-  "customerStripe": "cus_123456"
-}
 ```

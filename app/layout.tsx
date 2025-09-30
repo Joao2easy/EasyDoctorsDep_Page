@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import WhatsAppFloat from "@/components/WhatsAppFloat";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,6 +19,9 @@ export default function RootLayout({
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
         {children}
+        
+        {/* Botão flutuante do WhatsApp - aparece em todas as telas */}
+        <WhatsAppFloat />
       </body>
     </html>
   );
