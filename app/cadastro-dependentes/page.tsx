@@ -95,12 +95,12 @@ function CadastroDependentesContent() {
 
       console.log('📦 Payload enviado:', payload);
 
-      // Usar proxy local para evitar problemas de CORS
-      const proxyUrl = '/api/cadastro-dependentes';
+      // Fazer POST diretamente para a API externa
+      const apiUrl = 'https://primary-production-2441.up.railway.app/webhook/finalizar-cadastros';
       
-      console.log('🌐 Fazendo requisição para proxy local:', proxyUrl);
+      console.log('🌐 Fazendo requisição para:', apiUrl);
       
-      const response = await fetch(proxyUrl, {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
