@@ -123,8 +123,14 @@ export default function FormularioDependentes({
     }
   };
 
+  const handleFormSubmit = (data: FormularioData) => {
+    console.log('📝 FormularioDependentes - onSubmit chamado!', data);
+    console.log('📝 Erros de validação:', errors);
+    onSubmit(data);
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-10">
       {/* Seção Titular */}
       <Card className="shadow-xl border-0 bg-white">
         <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-t-lg">

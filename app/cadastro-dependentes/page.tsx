@@ -66,6 +66,8 @@ function CadastroDependentesContent() {
   }, [searchParams]);
 
   const handleSubmit = async (data: FormularioData) => {
+    console.log('🚀 handleSubmit chamado!', data);
+    
     try {
       setIsLoading(true);
       setError(null);
@@ -91,12 +93,14 @@ function CadastroDependentesContent() {
         customerStripe,
       };
 
-      console.log('Payload enviado:', payload);
-      console.log('Webhook URL:', process.env.NEXT_PUBLIC_DEPENDENTES_WEBHOOK_URL);
+      console.log('📦 Payload enviado:', payload);
+      console.log('🔗 Webhook URL:', process.env.NEXT_PUBLIC_DEPENDENTES_WEBHOOK_URL);
 
       // Fazer requisição para o webhook de dependentes
       const webhookUrl = process.env.NEXT_PUBLIC_DEPENDENTES_WEBHOOK_URL || 
                         'https://primary-teste-2d67.up.railway.app/webhook-test/finalizar-cadastros';
+      
+      console.log('🌐 Fazendo requisição para:', webhookUrl);
       
       const response = await fetch(webhookUrl, {
         method: 'POST',
@@ -106,13 +110,17 @@ function CadastroDependentesContent() {
         body: JSON.stringify(payload),
       });
 
+      console.log('📡 Status da resposta:', response.status);
+      console.log('📡 Headers da resposta:', response.headers);
+
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('❌ Erro na API:', response.status, errorText);
         throw new Error(`Erro na API: ${response.status} - ${errorText}`);
       }
 
       const resultado = await response.json();
-      console.log('Resposta da API:', resultado);
+      console.log('✅ Resposta da API:', resultado);
       
       // Verificar se a resposta indica sucesso
       if (resultado.success || resultado.data) {
@@ -127,7 +135,7 @@ function CadastroDependentesContent() {
       }
       
     } catch (err) {
-      console.error('Erro ao enviar formulário:', err);
+      console.error('❌ Erro ao enviar formulário:', err);
       setError(err instanceof Error ? err.message : 'Erro ao enviar formulário');
     } finally {
       setIsLoading(false);
