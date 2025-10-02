@@ -162,5 +162,35 @@ export async function getPlans() {
   }
 }
 
+export async function getDependentes(clientId: string) {
+  const url = 'https://primary-production-2441.up.railway.app/webhook/buscar-dependentes';
+  
+  try {
+    console.log('🔍 Buscando dependentes para client_id:', clientId);
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        client_id: clientId
+      }),
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erro na API: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ Dependentes carregados com sucesso da API:', data);
+    return data;
+  } catch (error) {
+    console.error('Erro ao buscar dependentes:', error);
+    throw error;
+  }
+}
+
 
 
