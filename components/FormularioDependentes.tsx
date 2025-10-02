@@ -67,6 +67,8 @@ export default function FormularioDependentes({
   onSubmit, 
   isLoading = false 
 }: FormularioDependentesProps) {
+  console.log('🔍 FormularioDependentes - quantidadeDependentes:', quantidadeDependentes);
+  
   const {
     register,
     handleSubmit,
@@ -82,7 +84,7 @@ export default function FormularioDependentes({
         numeroDocumento: "",
         genero: "",
       },
-      dependentes: Array(quantidadeDependentes).fill(null).map(() => ({
+      dependentes: Array.from({ length: quantidadeDependentes }, () => ({
         nome: "",
         telefone: "",
         codigoPais: "BR",
@@ -99,6 +101,9 @@ export default function FormularioDependentes({
     control,
     name: "dependentes",
   });
+
+  console.log('🔍 FormularioDependentes - fields:', fields);
+  console.log('🔍 FormularioDependentes - fields.length:', fields.length);
 
   const handleTelefoneChange = (value: string | undefined, index: number) => {
     setValue(`dependentes.${index}.telefone`, value || "");
