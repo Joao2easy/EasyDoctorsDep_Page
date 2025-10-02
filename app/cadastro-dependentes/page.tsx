@@ -4,6 +4,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import FormularioDependentes from '@/components/FormularioDependentes';
 import { FormularioData } from '@/lib/dependentes-validators';
+import { getDependentes } from '@/lib/fetcher'; // NOVO: Import da função
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -91,6 +92,7 @@ function CadastroDependentesContent() {
   const [quantidadeDependentes, setQuantidadeDependentes] = useState(0);
   const [planoNome, setPlanoNome] = useState('');
   const [customerStripe, setCustomerStripe] = useState('');
+  const [clientId, setClientId] = useState(''); // ID do cliente para buscar dependentes
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -100,6 +102,7 @@ function CadastroDependentesContent() {
     const plano = searchParams.get('plano');
     const dependentes = searchParams.get('dependentes');
     const customer = searchParams.get('Customer_stripe') || searchParams.get('Custumer_stripe');
+    const client = searchParams.get('client_id'); // NOVO: pegar client_id da URL
 
     if (!plano) {
       setError('ID do plano não fornecido na URL');
@@ -111,13 +114,21 @@ function CadastroDependentesContent() {
       return;
     }
 
+    if (!client) {
+      setError('ID do cliente não fornecido na URL');
+      return;
+    }
+
     setCustomerStripe(customer);
+    setClientId(client);
 
     // Verificar se o plano existe no mapeamento
     if (plano in planos) {
       const planoData = planos[plano as keyof typeof planos];
       setPlanoNome(planoData.nome);
-      setQuantidadeDependentes(planoData.dependentes);
+      
+      // NOVA LÓGICA: Buscar dependentes já cadastrados e calcular restantes
+      buscarDependentesECalcularRestantes(client, planoData.dependentes);
     } else {
       // Se não existe no mapeamento, usar o parâmetro dependentes diretamente
       const numDependentes = dependentes ? parseInt(dependentes, 10) : 0;
@@ -125,10 +136,48 @@ function CadastroDependentesContent() {
         setError('Número de dependentes inválido');
         return;
       }
+
       setPlanoNome(`Plano ID: ${plano}`);
       setQuantidadeDependentes(numDependentes);
     }
   }, [searchParams]);
+
+  // NOVA FUNÇÃO: Buscar dependentes já cadastrados e calcular restantes
+  const buscarDependentesECalcularRestantes = async (clientId: string, maxDependentes: number) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      console.log('🔍 Buscando dependentes para client_id:', clientId);
+      console.log('📊 Máximo de dependentes permitidos:', maxDependentes);
+      
+      // Buscar dependentes já cadastrados
+      const dependentesJaCadastrados = await getDependentes(clientId);
+      const quantidadeJaCadastrada = dependentesJaCadastrados.length;
+      
+      // Calcular dependentes restantes
+      const dependentesRestantes = Math.max(0, maxDependentes - quantidadeJaCadastrada);
+      
+      console.log('📊 Resumo de dependentes:');
+      console.log(`- Máximo permitido: ${maxDependentes}`);
+      console.log(`- Já cadastrados: ${quantidadeJaCadastrada}`);
+      console.log(`- Restantes para cadastrar: ${dependentesRestantes}`);
+      
+      setQuantidadeDependentes(dependentesRestantes);
+      
+      if (dependentesRestantes === 0) {
+        setError('Você já cadastrou todos os dependentes permitidos pelo seu plano.');
+      }
+      
+    } catch (error) {
+      console.error('Erro ao buscar dependentes:', error);
+      setError('Erro ao verificar dependentes já cadastrados. Usando quantidade máxima do plano.');
+      // Fallback: usar quantidade máxima do plano
+      setQuantidadeDependentes(maxDependentes);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (data: FormularioData) => {
     console.log('🚀 handleSubmit chamado!', data);
