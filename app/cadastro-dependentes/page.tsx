@@ -242,9 +242,11 @@ function CadastroDependentesContent() {
       
       // Verificar se a resposta indica sucesso
       if (resultado.success || resultado.data) {
-        // Capturar URL de redirecionamento se existir
-        const redirectUrl = resultado.data?.checkout_url || resultado.url;
+        // Capturar URL de redirecionamento - CORRIGIDO para capturar resultado.data.url
+        const redirectUrl = resultado.data?.url || resultado.data?.checkout_url || resultado.url;
         setRedirectUrl(redirectUrl);
+        
+        console.log('🔗 URL de redirecionamento capturada:', redirectUrl);
         
         // Mostrar modal de sucesso
         setShowSuccessModal(true);

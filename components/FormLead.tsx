@@ -55,17 +55,40 @@ export default function FormLead({ plan, onSubmit, isLoading = false }: FormLead
     if (!plan) return "";
     const people = plan.pessoas === 1 ? "1 pessoa" : "até 4 pessoas";
     const duration = plan.duracao_meses === 1 ? "mensal" : `${plan.duracao_meses} meses`;
-    return `${people} • ${plan.nivel} • ${duration} — ${formatUSD(plan.preco_total)}`;
+    return `${people} • ${plan.nivel} • ${duration}`;
+  };
+
+  const getPlanPrice = () => {
+    if (!plan) return "";
+    return formatUSD(plan.preco_total);
   };
 
   return (
     <div className="w-full max-w-md mx-auto">
-      {/* Resumo do plano */}
+      {/* Resumo do plano com destaque cinza elegante */}
       {plan && (
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <p className="text-sm font-medium text-gray-900">
+        <div className="mb-8 p-6 bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-xl text-gray-900 relative">
+          <div className="flex items-center space-x-3 mb-3">
+            <div className="w-8 h-8 bg-[#74237F] rounded-full flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900">Plano Selecionado</h3>
+          </div>
+          
+          <p className="text-base font-medium text-gray-700 leading-relaxed mb-1">
             {getPlanSummary()}
           </p>
+          
+          <p className="text-2xl font-bold text-[#74237F]">
+            {getPlanPrice()}
+          </p>
+          
+          <div className="mt-3 flex items-center space-x-2">
+            <div className="w-2 h-2 bg-[#74237F] rounded-full animate-pulse"></div>
+            <p className="text-sm text-gray-600 font-medium">Pronto para finalizar!</p>
+          </div>
         </div>
       )}
 

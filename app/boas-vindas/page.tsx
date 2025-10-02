@@ -1,12 +1,35 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Header from "@/components/Header";
 import { CheckCircle, Smartphone, Globe, Mail } from "lucide-react";
+import { track } from "@/lib/fbq";
 
 export default function BoasVindasPage() {
+  useEffect(() => {
+    // Verificar se veio do Stripe (pagamento aprovado)
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const paymentStatus = urlParams.get("payment");
+      const sessionId = urlParams.get("session_id");
+      
+      if (paymentStatus === "success") {
+        console.log("🎉 Pagamento confirmado, disparando pixel Purchase");
+        
+        // Disparar pixel Purchase
+        track("Purchase", {
+          content_type: "product",
+          content_ids: ["plano-49-90"],
+          value: 49.90,
+          currency: "USD",
+          session_id: sessionId || "unknown"
+        });
+      }
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
