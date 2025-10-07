@@ -160,9 +160,9 @@ export type FormularioData = z.infer<typeof formularioSchema>;
 // Opções disponíveis
 export const tiposDocumento = [
   { value: 0, label: "CPF" },
-  { value: 1, label: "SSN" },
-  { value: 2, label: "ITIN" },
-  { value: 3, label: "PASSAPORTE" }
+  { value: 1, label: "PASSAPORTE" },
+  { value: 2, label: "SSN" },
+  { value: 3, label: "ITIN" }
 ];
 
 export const paises = [
@@ -184,9 +184,9 @@ export const formatDocumento = (value: string, tipoDocumento: number) => {
   const cleaned = value.replace(/\D/g, '');
   switch (tipoDocumento) {
     case 0: return cleaned.slice(0, 11); // CPF
-    case 1: return cleaned.slice(0, 9);  // SSN
-    case 2: return cleaned.slice(0, 9);  // ITIN
-    case 3: return value.slice(0, 20);   // PASSAPORTE
+    case 1: return value.slice(0, 20);   // PASSAPORTE
+    case 2: return cleaned.slice(0, 9);  // SSN
+    case 3: return cleaned.slice(0, 9);  // ITIN
     default: return cleaned.slice(0, 20);
   }
 };

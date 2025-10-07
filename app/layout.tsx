@@ -48,7 +48,7 @@ export default function RootLayout({
               t.src=v;s=b.getElementsByTagName(e)[0];
               s.parentNode.insertBefore(t,s)}(window, document,'script',
               'https://connect.facebook.net/en_US/fbevents.js');
-              fbq('init', '1073705441539784');
+              fbq('init', '1341879410975922');
               // REMOVIDO: fbq('track', 'PageView'); ← NÃO DISPARA MAIS AUTOMATICAMENTE
             `,
           }}

@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import Stepper from "@/components/Stepper";
 import SelectedPlanPanel from "@/components/SelectedPlanPanel";
 import PlanCard from "@/components/PlanCard";
-import Header from "@/components/Header";
 import { formatUSD } from "@/lib/utils";
 
 // Dynamic imports para evitar problemas de SSR
@@ -38,6 +37,7 @@ export default function HomePage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [planSelected, setPlanSelected] = useState<NormalizedPlan | null>(null);
   const [vendedor, setVendedor] = useState<string | null>(null);
+  const [plansLoaded, setPlansLoaded] = useState(false);
 
   // Carregar planos na inicialização
   useEffect(() => {
@@ -51,6 +51,7 @@ export default function HomePage() {
         const plansData = await getPlans();
         const normalizedPlans = normalizePlans(plansData);
         setPlans(normalizedPlans);
+        setPlansLoaded(true);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erro ao carregar planos");
       } finally {
@@ -60,6 +61,53 @@ export default function HomePage() {
 
     loadPlans();
   }, [setPlans, setLoading, setError]);
+
+  // AUTO-SELECIONAR PLANO DE $49.90 QUANDO OS PLANOS FOREM CARREGADOS
+  useEffect(() => {
+    if (plansLoaded && plans.length > 0 && !planSelected) {
+      // Procurar pelo plano de $49.90 (até 4 pessoas, Premium, mensal)
+      const targetPlan = plans.find(plan => 
+        plan.pessoas === 4 && 
+        plan.nivel === "Premium" && 
+        plan.duracao_meses === 1 &&
+        plan.preco_total === 49.9
+      );
+
+      if (targetPlan) {
+        console.log('🎯 Plano auto-selecionado:', targetPlan);
+        
+        // Auto-selecionar o plano
+        setPlanSelected(targetPlan);
+        setSelectedPlan(targetPlan);
+        
+        // PULAR DIRETO PARA O PASSO 3 (Seus dados)
+        setStep(3);
+        
+        // Disparar evento do Facebook
+        track("InicioCheckout", {
+          plan: targetPlan.nome_original,
+          price: targetPlan.preco_total,
+        });
+        
+        // Atualizar wizard state para refletir o plano selecionado
+        setWizardState({
+          people: 4,
+          duration: 1,
+          level: "Premium"
+        });
+      } else {
+        console.warn('⚠️ Plano de $49.90 não encontrado. Planos disponíveis:', 
+          plans.map(p => ({
+            nome: p.nome_original,
+            pessoas: p.pessoas,
+            nivel: p.nivel,
+            duracao: p.duracao_meses,
+            preco: p.preco_total
+          }))
+        );
+      }
+    }
+  }, [plansLoaded, plans, planSelected, setSelectedPlan, setWizardState]);
 
   // Capturar parâmetro vendedor da URL
   useEffect(() => {
@@ -248,11 +296,12 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <Header />
+      {/* Header - REMOVIDO */}
+      {/* <Header /> */}
       
       <div className="container mx-auto px-4 py-12">
-        {/* Hero Section */}
+        {/* Hero Section - ESCONDIDO */}
+        {/* 
         <div className="text-center mb-16">
           <h1 className="font-bold text-gray-900 mb-2 leading-tight" style={{ fontSize: '20px' }}>
             Escolha seu plano em{" "}
@@ -262,9 +311,12 @@ export default function HomePage() {
             Acesso completo à telemedicina com especialistas qualificados
           </p>
         </div>
+        */}
 
-        {/* Stepper */}
+        {/* Stepper - ESCONDIDO */}
+        {/* 
         <Stepper currentStep={step} />
+        */}
 
         {/* Main Content */}
         <div className="max-w-7xl mx-auto">
@@ -310,6 +362,8 @@ export default function HomePage() {
                   onSelect={handleGoToStep3}
                 />
                 
+                {/* Botão Voltar - REMOVIDO (Landing Page) */}
+                {/*
                 <div className="text-center">
                   <Button
                     variant="ghost"
@@ -319,6 +373,7 @@ export default function HomePage() {
                     Voltar
                   </Button>
                 </div>
+                */}
               </div>
             </div>
           )}
@@ -342,6 +397,8 @@ export default function HomePage() {
                     />
                   </React.Suspense>
                   
+                  {/* Botão Voltar - REMOVIDO (Landing Page) */}
+                  {/*
                   <div className="mt-8">
                     <Button
                       variant="outline"
@@ -351,6 +408,7 @@ export default function HomePage() {
                       Voltar
                     </Button>
                   </div>
+                  */}
                 </CardContent>
               </Card>
             </div>

@@ -54,9 +54,9 @@ const formatPassaporte = (value: string) => {
 const applyDocumentMask = (value: string, tipoDocumento: number) => {
   switch (tipoDocumento) {
     case 0: return formatCPF(value); // CPF
-    case 1: return formatSSN(value); // SSN
-    case 2: return formatITIN(value); // ITIN
-    case 3: return formatPassaporte(value); // PASSAPORTE
+    case 1: return formatPassaporte(value); // PASSAPORTE
+    case 2: return formatSSN(value); // SSN
+    case 3: return formatITIN(value); // ITIN
     default: return value;
   }
 };
@@ -199,9 +199,9 @@ export default function FormularioDependentes({
   const getDocumentPlaceholder = (tipoDocumento: number) => {
     switch (tipoDocumento) {
       case 0: return "000.000.000-00"; // CPF
-      case 1: return "000-00-0000"; // SSN
-      case 2: return "00-000-0000"; // ITIN
-      case 3: return "Número do passaporte"; // PASSAPORTE
+      case 1: return "Número do passaporte"; // PASSAPORTE
+      case 2: return "000-00-0000"; // SSN
+      case 3: return "00-000-0000"; // ITIN
       default: return "Digite o número";
     }
   };
