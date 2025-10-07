@@ -29,6 +29,7 @@ export type CheckoutPayload = {
   telefone: string;
   stripe_price_id: string;
   vendedor: string | null;
+  URL_utmfy: string | null; // Nova propriedade para os parâmetros UTM
 };
 
 export type ApiResponse = {

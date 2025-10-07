@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { formularioSchema, FormularioData, tiposDocumento, generos, formatTelefone, formatDocumento, getCodigoPais } from "@/lib/dependentes-validators";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import PhoneInput from "./PhoneInput";
+import { HelpCircle } from "lucide-react";
 
 interface FormularioDependentesProps {
   quantidadeDependentes: number;
@@ -69,6 +70,8 @@ export default function FormularioDependentes({
 }: FormularioDependentesProps) {
   console.log('🔍 FormularioDependentes - quantidadeDependentes:', quantidadeDependentes);
   
+  const [customErrors, setCustomErrors] = useState<{[key: string]: string}>({});
+  
   const {
     register,
     handleSubmit,
@@ -76,6 +79,8 @@ export default function FormularioDependentes({
     setValue,
     watch,
     formState: { errors },
+    setError,
+    clearErrors,
   } = useForm<FormularioData>({
     resolver: zodResolver(formularioSchema),
     defaultValues: {
@@ -102,8 +107,67 @@ export default function FormularioDependentes({
     name: "dependentes",
   });
 
-  console.log('🔍 FormularioDependentes - fields:', fields);
-  console.log('🔍 FormularioDependentes - fields.length:', fields.length);
+  // Watch all values for real-time validation
+  const watchTitularDoc = watch("titular.numeroDocumento");
+  const watchDependentes = watch("dependentes");
+
+  // Função para validar duplicatas em tempo real
+  const validateDuplicates = () => {
+    const newErrors: {[key: string]: string} = {};
+    
+    if (!watchDependentes || watchDependentes.length === 0) {
+      setCustomErrors({});
+      return;
+    }
+    
+    const titularDocClean = watchTitularDoc?.replace(/\D/g, '') || '';
+    
+    console.log('🔍 Validando duplicatas...', {
+      titularDocClean,
+      watchDependentes: watchDependentes.map(dep => ({
+        doc: dep.numeroDocumento?.replace(/\D/g, ''),
+        email: dep.email?.toLowerCase().trim()
+      }))
+    });
+    
+    watchDependentes.forEach((dep, index) => {
+      const depDocClean = dep.numeroDocumento?.replace(/\D/g, '') || '';
+      const depEmail = dep.email?.toLowerCase().trim() || '';
+      
+      // Validar documento vs titular
+      if (depDocClean.length > 0 && titularDocClean.length > 0 && depDocClean === titularDocClean) {
+        newErrors[`dependentes.${index}.numeroDocumento`] = "O documento do dependente não pode ser igual ao do titular";
+        console.log('❌ Documento duplicado com titular:', depDocClean);
+      }
+      
+      // Validar documento vs outros dependentes
+      watchDependentes.forEach((otherDep, otherIndex) => {
+        if (index !== otherIndex) {
+          const otherDocClean = otherDep.numeroDocumento?.replace(/\D/g, '') || '';
+          const otherEmail = otherDep.email?.toLowerCase().trim() || '';
+          
+          if (depDocClean.length > 0 && otherDocClean.length > 0 && depDocClean === otherDocClean) {
+            newErrors[`dependentes.${index}.numeroDocumento`] = "Este documento já foi utilizado em outro dependente";
+            console.log('❌ Documento duplicado entre dependentes:', depDocClean);
+          }
+          
+          if (depEmail.length > 0 && otherEmail.length > 0 && depEmail === otherEmail) {
+            newErrors[`dependentes.${index}.email`] = "Este e-mail já foi utilizado em outro dependente";
+            console.log('❌ Email duplicado entre dependentes:', depEmail);
+          }
+        }
+      });
+    });
+    
+    console.log('🔍 Novos erros encontrados:', newErrors);
+    setCustomErrors(newErrors);
+  };
+
+  // Validação em tempo real - dispara sempre que os valores mudam
+  useEffect(() => {
+    console.log('🔄 useEffect disparado - validando duplicatas');
+    validateDuplicates();
+  }, [watchTitularDoc, watchDependentes]);
 
   const handleTelefoneChange = (value: string | undefined, index: number) => {
     setValue(`dependentes.${index}.telefone`, value || "");
@@ -116,6 +180,20 @@ export default function FormularioDependentes({
     } else {
       setValue(`dependentes.${index}.numeroDocumento`, masked);
     }
+    
+    // Disparar validação imediatamente após mudança
+    setTimeout(() => {
+      validateDuplicates();
+    }, 100);
+  };
+
+  const handleEmailChange = (value: string, index: number) => {
+    setValue(`dependentes.${index}.email`, value);
+    
+    // Disparar validação imediatamente após mudança
+    setTimeout(() => {
+      validateDuplicates();
+    }, 100);
   };
 
   const getDocumentPlaceholder = (tipoDocumento: number) => {
@@ -131,6 +209,7 @@ export default function FormularioDependentes({
   const handleFormSubmit = (data: FormularioData) => {
     console.log('📝 FormularioDependentes - onSubmit chamado!', data);
     console.log('📝 Erros de validação:', errors);
+    console.log('📝 Erros customizados:', customErrors);
     onSubmit(data);
   };
 
@@ -139,17 +218,26 @@ export default function FormularioDependentes({
       {/* Seção Titular */}
       <Card className="shadow-xl border-0 bg-white">
         <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-t-lg">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-[#74237F] rounded-full flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-[#74237F] rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <div>
+                <CardTitle className="text-xl text-gray-900">Dados do Titular</CardTitle>
+                <CardDescription className="text-gray-600">
+                  Informações do responsável pela assinatura
+                </CardDescription>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-xl text-gray-900">Dados do Titular</CardTitle>
-              <CardDescription className="text-gray-600">
-                Informações do responsável pela assinatura
-              </CardDescription>
+            <div className="group relative">
+              <HelpCircle className="w-5 h-5 text-gray-400 hover:text-[#74237F] cursor-help transition-colors" />
+              <div className="absolute right-0 top-8 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                Estes são os dados do titular da conta, responsável pela assinatura do plano.
+                <div className="absolute -top-1 right-4 w-2 h-2 bg-gray-900 transform rotate-45"></div>
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -231,9 +319,9 @@ export default function FormularioDependentes({
                 </svg>
               </div>
               <div>
-                <CardTitle className="text-xl text-white">Dependentes ({quantidadeDependentes})</CardTitle>
+                <CardTitle className="text-xl text-white">Quantidade de dependentes disponíveis ({quantidadeDependentes})</CardTitle>
                 <CardDescription className="text-white/90">
-                  Preencha os dados de cada dependente
+                  Insira os dados de cada dependente. Cada cadastro deve ser único e diferente do titular.
                 </CardDescription>
               </div>
             </div>
@@ -250,6 +338,13 @@ export default function FormularioDependentes({
                       <h4 className="text-lg font-semibold text-gray-900">
                         Dependente {index + 1}
                       </h4>
+                    </div>
+                    <div className="group relative">
+                      <HelpCircle className="w-5 h-5 text-gray-400 hover:text-[#74237F] cursor-help transition-colors" />
+                      <div className="absolute right-0 top-8 w-72 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                        <strong>⚠️ Atenção:</strong> Insira os dados do seu dependente. Não utilize os mesmos dados do titular ou de outros dependentes já cadastrados.
+                        <div className="absolute -top-1 right-4 w-2 h-2 bg-gray-900 transform rotate-45"></div>
+                      </div>
                     </div>
                   </div>
 
@@ -299,15 +394,19 @@ export default function FormularioDependentes({
                         id={`dependentes.${index}.email`}
                         type="email"
                         placeholder="email@exemplo.com"
-                        {...register(`dependentes.${index}.email`)}
+                        value={watch(`dependentes.${index}.email`)}
+                        onChange={(e) => handleEmailChange(e.target.value, index)}
                         className={`h-12 rounded-lg border-2 px-4 py-3 text-sm transition-colors ${
-                          errors.dependentes?.[index]?.email 
+                          errors.dependentes?.[index]?.email || customErrors[`dependentes.${index}.email`]
                             ? "border-destructive focus:ring-destructive" 
                             : "border-gray-200 focus:ring-[#74237F] focus:border-[#74237F]"
                         }`}
                       />
                       {errors.dependentes?.[index]?.email && (
                         <p className="text-sm text-destructive font-medium">{errors.dependentes[index]?.email?.message}</p>
+                      )}
+                      {customErrors[`dependentes.${index}.email`] && (
+                        <p className="text-sm text-destructive font-medium">{customErrors[`dependentes.${index}.email`]}</p>
                       )}
                     </div>
 
@@ -363,13 +462,16 @@ export default function FormularioDependentes({
                         value={watch(`dependentes.${index}.numeroDocumento`)}
                         onChange={(e) => handleDocumentoChange(e.target.value, watch(`dependentes.${index}.tipoDocumento`), index)}
                         className={`h-12 rounded-lg border-2 px-4 py-3 text-sm transition-colors ${
-                          errors.dependentes?.[index]?.numeroDocumento 
+                          errors.dependentes?.[index]?.numeroDocumento || customErrors[`dependentes.${index}.numeroDocumento`]
                             ? "border-destructive focus:ring-destructive" 
                             : "border-gray-200 focus:ring-[#74237F] focus:border-[#74237F]"
                         }`}
                       />
                       {errors.dependentes?.[index]?.numeroDocumento && (
                         <p className="text-sm text-destructive font-medium">{errors.dependentes[index]?.numeroDocumento?.message}</p>
+                      )}
+                      {customErrors[`dependentes.${index}.numeroDocumento`] && (
+                        <p className="text-sm text-destructive font-medium">{customErrors[`dependentes.${index}.numeroDocumento`]}</p>
                       )}
                     </div>
                   </div>

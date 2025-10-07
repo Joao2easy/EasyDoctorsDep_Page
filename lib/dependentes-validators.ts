@@ -71,15 +71,17 @@ export const pessoaSchema = z.object({
     .max(3, "Tipo de documento inválido"),
   numeroDocumento: z.string()
     .min(1, "Número do documento obrigatório")
-    .max(50, "Número do documento muito longo")
-    .refine((value) => {
-      // Buscar o tipoDocumento do mesmo objeto
-      const tipoDocumento = 0; // Default para CPF
-      if (tipoDocumento === 0) { // CPF
-        return validateCPF(value);
-      }
-      return true;
-    }, "CPF inválido"),
+    .max(50, "Número do documento muito longo"),
+}).refine((data) => {
+  // Validar apenas se for CPF (tipo 0)
+  if (data.tipoDocumento === 0) {
+    return validateCPF(data.numeroDocumento);
+  }
+  // Para outros tipos de documento, não validar (aceitar qualquer formato)
+  return true;
+}, {
+  message: "CPF inválido",
+  path: ["numeroDocumento"],
 });
 
 // Schema para titular (apenas 3 campos)
@@ -89,27 +91,65 @@ export const titularSchema = z.object({
     .max(3, "Tipo de documento inválido"),
   numeroDocumento: z.string()
     .min(1, "Número do documento obrigatório")
-    .max(50, "Número do documento muito longo")
-    .refine((value) => {
-      // Buscar o tipoDocumento do mesmo objeto
-      const tipoDocumento = 0; // Default para CPF
-      if (tipoDocumento === 0) { // CPF
-        return validateCPF(value);
-      }
-      return true;
-    }, "CPF inválido"),
+    .max(50, "Número do documento muito longo"),
   genero: z.string()
     .min(1, "Gênero obrigatório"),
+}).refine((data) => {
+  // Validar apenas se for CPF (tipo 0)
+  if (data.tipoDocumento === 0) {
+    return validateCPF(data.numeroDocumento);
+  }
+  // Para outros tipos de documento, não validar (aceitar qualquer formato)
+  return true;
+}, {
+  message: "CPF inválido",
+  path: ["numeroDocumento"],
 });
 
 // Schema para dependente
 export const dependenteSchema = pessoaSchema;
 
-// Schema principal do formulário
+// Schema principal do formulário com validações de duplicatas
 export const formularioSchema = z.object({
   titular: titularSchema,
   dependentes: z.array(dependenteSchema),
   plano: z.string().optional(),
+}).refine((data) => {
+  // Validar que nenhum dependente tem o mesmo documento do titular
+  const titularDoc = data.titular.numeroDocumento.replace(/\D/g, '');
+  
+  for (const dep of data.dependentes) {
+    const depDoc = dep.numeroDocumento.replace(/\D/g, '');
+    if (depDoc && titularDoc && depDoc === titularDoc) {
+      return false;
+    }
+  }
+  return true;
+}, {
+  message: "O documento de um dependente não pode ser igual ao do titular",
+  path: ["dependentes"],
+}).refine((data) => {
+  // Validar que não há documentos duplicados entre os dependentes
+  const documentos = data.dependentes
+    .map(dep => dep.numeroDocumento.replace(/\D/g, ''))
+    .filter(doc => doc.length > 0);
+  
+  const documentosUnicos = new Set(documentos);
+  return documentos.length === documentosUnicos.size;
+}, {
+  message: "Existem documentos duplicados entre os dependentes",
+  path: ["dependentes"],
+}).refine((data) => {
+  // Validar que não há e-mails duplicados entre os dependentes
+  const emails = data.dependentes
+    .map(dep => dep.email.toLowerCase().trim())
+    .filter(email => email.length > 0);
+  
+  const emailsUnicos = new Set(emails);
+  return emails.length === emailsUnicos.size;
+}, {
+  message: "Existem e-mails duplicados entre os dependentes",
+  path: ["dependentes"],
 });
 
 // Tipos TypeScript

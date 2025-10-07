@@ -10,7 +10,6 @@ import { CheckoutPayload, ApiResponse, NormalizedPlan } from "@/types/plan";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import Header from "@/components/Header";
 import Stepper from "@/components/Stepper";
 import SelectedPlanPanel from "@/components/SelectedPlanPanel";
 import PlanCard from "@/components/PlanCard";
@@ -121,6 +120,28 @@ export default function HomePage() {
     }
   }, []);
 
+  // Função para capturar parâmetros UTM da URL
+  const getUTMParameters = () => {
+    if (typeof window === "undefined") return null;
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const utmParams = new URLSearchParams();
+    
+    // Capturar todos os parâmetros UTM
+    const utmKeys = ['utm_source', 'utm_campaign', 'utm_medium', 'utm_content', 'utm_term'];
+    
+    utmKeys.forEach(key => {
+      const value = urlParams.get(key);
+      if (value) {
+        utmParams.append(key, value);
+      }
+    });
+    
+    // Retornar string de parâmetros UTM ou null se não houver nenhum
+    const utmString = utmParams.toString();
+    return utmString || null;
+  };
+
   // Obter match atual do wizard (apenas planos principais, não avulso)
   const getCurrentMatch = () => {
     const filteredPlans = plans.filter(plan => {
@@ -182,6 +203,10 @@ export default function HomePage() {
       setLoading(true);
       setError(null);
 
+      // Capturar parâmetros UTM
+      const utmParameters = getUTMParameters();
+      console.log('🔗 Parâmetros UTM capturados:', utmParameters);
+
       // Montar payload
       const payload: CheckoutPayload = {
         nome: formData.nome,
@@ -189,7 +214,10 @@ export default function HomePage() {
         telefone: formData.telefone,
         stripe_price_id: planSelected.stripe_price_id,
         vendedor: vendedor,
+        URL_utmfy: utmParameters, // Adicionar parâmetros UTM ao payload
       };
+
+      console.log('📦 Payload completo:', payload);
 
       // Fazer requisição para o webhook de PRODUÇÃO
       const response = await fetch('https://primary-production-2441.up.railway.app/webhook/Cadastro-EasyDoctors', {
@@ -268,8 +296,8 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <Header />
+      {/* Header - REMOVIDO */}
+      {/* <Header /> */}
       
       <div className="container mx-auto px-4 py-12">
         {/* Hero Section - ESCONDIDO */}
