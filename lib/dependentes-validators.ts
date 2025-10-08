@@ -162,7 +162,7 @@ export const tiposDocumento = [
   { value: 0, label: "CPF" },
   { value: 1, label: "PASSAPORTE" },
   { value: 2, label: "SSN" },
-  { value: 3, label: "ITIN" }
+  // { value: 3, label: "ITIN" } // COMENTADO - não mostrar no frontend
 ];
 
 export const paises = [
