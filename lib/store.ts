@@ -20,8 +20,9 @@ export const useAppStore = create<AppState>((set) => ({
   plans: [],
   wizardState: {
     people: 1,
-    duration: 1, // Default para 1 mês (Mensal)
-    level: "Premium", // Será atualizado automaticamente
+    duration: 1,
+    level: "Premium",
+    isAvulso: false, // Adicionar flag
   },
   selectedPlan: null,
   isLoading: false,

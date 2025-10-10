@@ -94,8 +94,14 @@ export default function HomePage() {
     return utmString || null;
   };
 
-  // Obter match atual do wizard (apenas planos principais, não avulso)
+  // Obter match atual do wizard
   const getCurrentMatch = () => {
+    // Se está no modo avulso, retornar o plano avulso
+    if (wizardState.isAvulso) {
+      return plans.find(plan => plan.nivel === "Avulso") || null;
+    }
+    
+    // Caso contrário, filtrar planos normais
     const filteredPlans = plans.filter(plan => {
       const isMatchingWizard = plan.pessoas === wizardState.people && 
         plan.duracao_meses === wizardState.duration && 
@@ -203,14 +209,14 @@ export default function HomePage() {
 
   // Verificar se é o mais popular e melhor valor
   const isMostPopular = (plan: NormalizedPlan) => 
-    plan.pessoas === 1 && plan.nivel === "Premium" && plan.duracao_meses === 6;
+    plan.preco_total === 49.90; // Básico 4 pessoas mensal - O mais escolhido
 
   const bestValuePlan = plans.reduce((best, current) => 
     current.preco_mensal_equivalente < best.preco_mensal_equivalente ? current : best
   , plans[0]);
 
   const isBestValue = (plan: NormalizedPlan) => 
-    bestValuePlan && plan.id === bestValuePlan.id;
+    plan.preco_total === 29.90; // Individual 1 pessoa - Melhor custo/mês
 
   const currentMatch = getCurrentMatch();
 
@@ -365,32 +371,6 @@ export default function HomePage() {
             </div>
           )}
         </div>
-
-        {/* Seção Avulso - SEMPRE NO FINAL (mobile e desktop) */}
-        {step === 1 && (
-          <div className="max-w-7xl mx-auto mt-20">
-            <div className="border-t border-gray-200 pt-12">
-              <div className="text-center mb-8">
-                <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide">
-                  Atendimento pontual
-                </h3>
-                <p className="text-xs text-gray-500 mt-2">
-                  Para consultas avulsas
-                </p>
-              </div>
-              <div className="max-w-md mx-auto">
-                {plans.find(plan => plan.nivel === "Avulso") && (
-                  <PlanCard
-                    plan={plans.find(plan => plan.nivel === "Avulso")!}
-                    isSelected={selectedPlan?.id === plans.find(plan => plan.nivel === "Avulso")?.id}
-                    ctaLabel="Selecionar"
-                    onSelect={handlePlanSelect}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Loading Overlay */}

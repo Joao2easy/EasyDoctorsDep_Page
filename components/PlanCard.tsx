@@ -29,10 +29,61 @@ export default function PlanCard({
   onSelect 
 }: PlanCardProps) {
   const getTitle = () => {
+    // Caso especial para Avulso
+    if (plan.nivel === "Avulso") {
+      return "1 pessoa • Avulso • 30 dias";
+    }
+    
+    // Para os outros planos
     const people = plan.pessoas === 1 ? "1 pessoa" : "até 4 pessoas";
     const duration = plan.duracao_meses === 1 ? "mensal" : `${plan.duracao_meses} meses`;
     return `${people} • ${plan.nivel} • ${duration}`;
   };
+
+  // Função que retorna os benefícios de acordo com o preço do plano
+  const getBenefits = () => {
+    const baseItems = [
+      "Clínico Geral ilimitado"
+    ];
+    
+    // Usar o preço para determinar os benefícios específicos
+    let specificBenefits: string[] = [];
+    
+    if (plan.preco_total === 149.90) {
+      // Preferencial ($149.90)
+      specificBenefits = [
+        "1 consulta com psicólogo",
+        "1 consulta com especialista"
+      ];
+    } else if (plan.preco_total === 299.40) {
+      // Premium ($299.40)
+      specificBenefits = [
+        "2 consultas com psicólogo",
+        "2 consultas com especialistas"
+      ];
+    } else if (plan.preco_total === 598.80) {
+      // VIP ($598.80)
+      specificBenefits = [
+        "6 consultas com psicólogo",
+        "6 consultas com especialistas"
+      ];
+    }
+    
+    const commonItems = [
+      "WhatsApp exclusivo",
+      "Sem taxa de adesão"
+    ];
+    
+    // Se tem benefícios específicos, adiciona entre base e common
+    if (specificBenefits.length > 0) {
+      return [...baseItems, ...specificBenefits, ...commonItems];
+    }
+    
+    // Para Individual ($29.90), Básico ($49.90) e Avulso ($79.90): apenas base + common
+    return [...baseItems, ...commonItems];
+  };
+
+  const benefits = getBenefits();
 
   return (
     <Card className={cn(
@@ -54,7 +105,7 @@ export default function PlanCard({
             <CardDescription className="text-3xl font-bold text-[#74237F] mt-3">
               {formatUSD(plan.preco_total)}
             </CardDescription>
-            {plan.duracao_meses > 1 && (
+            {plan.duracao_meses > 1 && plan.nivel !== "Avulso" && (
               <p className="text-sm text-gray-600 mt-2">
                 equivale a {formatUSD(plan.preco_mensal_equivalente)}/mês
               </p>
@@ -70,30 +121,14 @@ export default function PlanCard({
 
       <CardContent className="space-y-6">
         <ul className="space-y-3 text-sm">
-          <li className="flex items-center">
-            <div className="w-5 h-5 bg-[#00BE91] rounded-full flex items-center justify-center mr-4 flex-shrink-0">
-              <Check className="w-3 h-3 text-white" />
-            </div>
-            <span className="text-gray-700">Telemedicina 24/7</span>
-          </li>
-          <li className="flex items-center">
-            <div className="w-5 h-5 bg-[#00BE91] rounded-full flex items-center justify-center mr-4 flex-shrink-0">
-              <Check className="w-3 h-3 text-white" />
-            </div>
-            <span className="text-gray-700">Especialidades principais</span>
-          </li>
-          <li className="flex items-center">
-            <div className="w-5 h-5 bg-[#00BE91] rounded-full flex items-center justify-center mr-4 flex-shrink-0">
-              <Check className="w-3 h-3 text-white" />
-            </div>
-            <span className="text-gray-700">WhatsApp exclusivo</span>
-          </li>
-          <li className="flex items-center">
-            <div className="w-5 h-5 bg-[#00BE91] rounded-full flex items-center justify-center mr-4 flex-shrink-0">
-              <Check className="w-3 h-3 text-white" />
-            </div>
-            <span className="text-gray-700">Sem taxa de adesão</span>
-          </li>
+          {benefits.map((benefit, index) => (
+            <li key={index} className="flex items-center">
+              <div className="w-5 h-5 bg-[#00BE91] rounded-full flex items-center justify-center mr-4 flex-shrink-0">
+                <Check className="w-3 h-3 text-white" />
+              </div>
+              <span className="text-gray-700">{benefit}</span>
+            </li>
+          ))}
         </ul>
 
         <Button

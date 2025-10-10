@@ -21,6 +21,7 @@ export type WizardState = {
   people: People;
   duration: Duration;
   level: Exclude<PlanLevel, "Avulso">;
+  isAvulso: boolean; // Nova flag para identificar modo avulso
 };
 
 export type CheckoutPayload = {
@@ -29,7 +30,7 @@ export type CheckoutPayload = {
   telefone: string;
   stripe_price_id: string;
   vendedor: string | null;
-  URL_utmfy: string | null; // Nova propriedade para os parâmetros UTM
+  URL_utmfy: string | null;
 };
 
 export type ApiResponse = {
