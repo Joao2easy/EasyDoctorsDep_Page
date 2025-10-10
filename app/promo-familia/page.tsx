@@ -93,7 +93,8 @@ export default function HomePage() {
         setWizardState({
           people: 4,
           duration: 1,
-          level: "Premium"
+          level: "Premium",
+          isAvulso: false
         });
       } else {
         console.warn('⚠️ Plano de $49.90 não encontrado. Planos disponíveis:', 
