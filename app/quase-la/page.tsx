@@ -13,9 +13,9 @@ import { Button } from "@/components/ui/button";
 import Stepper from "@/components/Stepper";
 import SelectedPlanPanel from "@/components/SelectedPlanPanel";
 import PlanCard from "@/components/PlanCard";
-import Header from "@/components/Header";
 import { formatUSD } from "@/lib/utils";
 import { Check, Users, User } from "lucide-react";
+import Image from "next/image";
 
 // Dynamic imports para evitar problemas de SSR
 const FormLead = React.lazy(() => import("@/components/FormLead"));
@@ -287,8 +287,22 @@ export default function QuaseLaPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <Header />
+      {/* Logo centralizado */}
+      <div className="bg-white shadow-sm border-b border-gray-100">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex justify-center">
+            <Image
+              src="/images/logo.png"
+              alt="EasyDoctors"
+              width={120}
+              height={40}
+              style={{ width: 'auto', height: 'auto' }}
+              className="h-8 w-auto"
+              priority
+            />
+          </div>
+        </div>
+      </div>
       
       <div className="container mx-auto px-4 py-12">
 
