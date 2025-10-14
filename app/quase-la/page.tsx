@@ -291,16 +291,6 @@ export default function QuaseLaPage() {
       <Header />
       
       <div className="container mx-auto px-4 py-12">
-        {/* Hero Section */}
-        <div className="text-center mb-16">
-          <h1 className="font-bold text-gray-900 mb-2 leading-tight" style={{ fontSize: '20px' }}>
-            Escolha seu plano em{" "}
-            <span className="text-[#74237F]">3 passos</span>
-          </h1>
-          <p className="text-gray-600 max-w-3xl mx-auto leading-relaxed" style={{ fontSize: '16px' }}>
-            Acesso completo à telemedicina com especialistas qualificados
-          </p>
-        </div>
 
         {/* Stepper */}
         <Stepper currentStep={step} />
