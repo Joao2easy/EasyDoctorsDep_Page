@@ -78,6 +78,7 @@ export default function FormularioDependentes({
     control,
     setValue,
     watch,
+    reset,
     formState: { errors },
     setError,
     clearErrors,
@@ -106,6 +107,29 @@ export default function FormularioDependentes({
     control,
     name: "dependentes",
   });
+
+  // Resetar formulário quando quantidadeDependentes mudar
+  useEffect(() => {
+    console.log('🔄 Resetando formulário para quantidadeDependentes:', quantidadeDependentes);
+    
+    reset({
+      titular: {
+        tipoDocumento: 0,
+        numeroDocumento: "",
+        genero: "",
+      },
+      dependentes: Array.from({ length: quantidadeDependentes }, () => ({
+        nome: "",
+        telefone: "",
+        codigoPais: "BR",
+        email: "",
+        genero: "",
+        tipoDocumento: 0,
+        numeroDocumento: "",
+      })),
+      plano: planoNome,
+    });
+  }, [quantidadeDependentes, planoNome, reset]);
 
   // Watch all values for real-time validation
   const watchTitularDoc = watch("titular.numeroDocumento");

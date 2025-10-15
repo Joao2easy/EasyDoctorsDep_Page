@@ -4,27 +4,26 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import FormularioDependentes from '@/components/FormularioDependentes';
 import { FormularioData } from '@/lib/dependentes-validators';
-import { getDependentes } from '@/lib/fetcher'; // NOVO: Import da função
+import { getDependentes, getPlans } from '@/lib/fetcher'; // NOVO: Import das funções
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Mail, Clock } from "lucide-react";
 
-// Mapeamento de planos conforme documentação
-const planos = {
-  "fdff75fe-23c3-47d0-a84c-445532a878ef": { nome: "Plano 1 pessoa - Premium (6 meses)", dependentes: 0 },
-  "9b4ace5f-1874-40ad-b5e9-93446a4447b9": { nome: "Plano 1 pessoa - VIP (12 meses)", dependentes: 0 },
-  "fde207d4-fef1-4585-a285-c84507b85449": { nome: "Plano 1 pessoa: $29,90", dependentes: 0 },
-  "1adf66a5-68a2-4533-a40b-14e149399130": { nome: "Plano 2 para até 4 pessoas: $49,90", dependentes: 4 },
-  "94bf854e-b15e-4da3-b39d-b34cf5601388": { nome: "Plano 3 consulta única: $79,90", dependentes: 0 },
-  "5b82a540-c362-4769-9331-6c69387f7176": { nome: "Plano 1 pessoa - Preferencial (3 meses)", dependentes: 0 },
-  "46cb7319-1972-4af8-a216-d14a502f7394": { nome: "Plano 4 Valor adicional por dependente (mensal)", dependentes: 0 },
-  "e2fde971-8359-486f-a9b7-12c9ac6dae09": { nome: "Plano 4 para até 4 pessoas - mês único: $89,90", dependentes: 4 },
-  "c3323a7f-4ae6-4031-85d9-53fc892a016b": { nome: "Plano 2 para até 4 pessoas - Premium (6 meses)", dependentes: 4 },
-  "2e15d471-d755-441f-abbf-3ebb89ad42d6": { nome: "Plano 2 para até 4 pessoas - VIP (12 meses)", dependentes: 4 },
-  "108fa0a8-f6fb-46c3-a6b9-e5acce7adcf4": { nome: "Plano 2 para até 4 pessoas - Preferencial (3 meses)", dependentes: 4 }
-};
+// Interface para planos da API
+interface PlanoAPI {
+  id: string;
+  nome: string;
+  max_dependentes: number;
+  [key: string]: any;
+}
+
+// Interface para planos mapeados
+interface PlanoMapeado {
+  nome: string;
+  dependentes: number;
+}
 
 // Modal de Sucesso
 interface SuccessModalProps {
@@ -94,15 +93,52 @@ function CadastroDependentesContent() {
   const [customerStripe, setCustomerStripe] = useState('');
   const [clientId, setClientId] = useState(''); // ID do cliente para buscar dependentes
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingPlanos, setIsLoadingPlanos] = useState(true);
+  const [planos, setPlanos] = useState<{[key: string]: PlanoMapeado}>({});
   const [error, setError] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [redirectUrl, setRedirectUrl] = useState<string | undefined>();
 
+  // Carregar planos da API
   useEffect(() => {
+    const carregarPlanos = async () => {
+      try {
+        setIsLoadingPlanos(true);
+        setError(null);
+        
+        console.log('🔍 Carregando planos da API...');
+        const planosData = await getPlans();
+        
+        // Converter array para objeto com ID como chave
+        const planosMap = planosData.reduce((acc, plano: PlanoAPI) => {
+          acc[plano.id] = {
+            nome: plano.nome,
+            dependentes: plano.max_dependentes
+          };
+          return acc;
+        }, {} as {[key: string]: PlanoMapeado});
+        
+        console.log('✅ Planos carregados com sucesso:', Object.keys(planosMap).length, 'planos');
+        setPlanos(planosMap);
+      } catch (error) {
+        console.error('❌ Erro ao carregar planos:', error);
+        setError('Erro ao carregar informações dos planos. Tente novamente.');
+      } finally {
+        setIsLoadingPlanos(false);
+      }
+    };
+    
+    carregarPlanos();
+  }, []);
+
+  useEffect(() => {
+    // Só processar se os planos já foram carregados
+    if (isLoadingPlanos) return;
+    
     const plano = searchParams.get('plano');
     const dependentes = searchParams.get('dependentes');
     const customer = searchParams.get('Customer_stripe') || searchParams.get('Custumer_stripe');
-    const client = searchParams.get('client_id'); // NOVO: pegar client_id da URL
+    const client = searchParams.get('client_id');
 
     if (!plano) {
       setError('ID do plano não fornecido na URL');
@@ -122,25 +158,19 @@ function CadastroDependentesContent() {
     setCustomerStripe(customer);
     setClientId(client);
 
-    // Verificar se o plano existe no mapeamento
+    // Verificar se o plano existe no mapeamento da API
     if (plano in planos) {
-      const planoData = planos[plano as keyof typeof planos];
+      const planoData = planos[plano];
       setPlanoNome(planoData.nome);
       
-      // NOVA LÓGICA: Buscar dependentes já cadastrados e calcular restantes
+      console.log('📋 Plano encontrado:', planoData.nome, 'Max dependentes:', planoData.dependentes);
+      
+      // Buscar dependentes já cadastrados e calcular restantes
       buscarDependentesECalcularRestantes(client, planoData.dependentes);
     } else {
-      // Se não existe no mapeamento, usar o parâmetro dependentes diretamente
-      const numDependentes = dependentes ? parseInt(dependentes, 10) : 0;
-      if (isNaN(numDependentes) || numDependentes < 0) {
-        setError('Número de dependentes inválido');
-        return;
-      }
-
-      setPlanoNome(`Plano ID: ${plano}`);
-      setQuantidadeDependentes(numDependentes);
+      setError('Plano não encontrado. Verifique se o ID do plano está correto.');
     }
-  }, [searchParams]);
+  }, [searchParams, planos, isLoadingPlanos]);
 
   // NOVA FUNÇÃO: Buscar dependentes já cadastrados e calcular restantes
   const buscarDependentesECalcularRestantes = async (clientId: string, maxDependentes: number) => {
@@ -165,14 +195,15 @@ function CadastroDependentesContent() {
       
       setQuantidadeDependentes(dependentesRestantes);
       
-      if (dependentesRestantes === 0) {
+      // Só mostrar erro se o plano permite dependentes mas já foram todos cadastrados
+      if (maxDependentes > 0 && dependentesRestantes === 0) {
         setError('Você já cadastrou todos os dependentes permitidos pelo seu plano.');
       }
       
     } catch (error) {
       console.error('Erro ao buscar dependentes:', error);
-      setError('Erro ao verificar dependentes já cadastrados. Usando quantidade máxima do plano.');
-      // Fallback: usar quantidade máxima do plano
+      console.log('⚠️ API indisponível, usando quantidade máxima do plano como fallback');
+      // Fallback: usar quantidade máxima do plano (sem mostrar erro na tela)
       setQuantidadeDependentes(maxDependentes);
     } finally {
       setIsLoading(false);
@@ -311,6 +342,19 @@ function CadastroDependentesContent() {
     }
   };
 
+  // Loading dos planos
+  if (isLoadingPlanos) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#74237F] mx-auto mb-4"></div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Carregando informações do plano...</h3>
+          <p className="text-gray-600">Aguarde enquanto buscamos os dados do seu plano.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -329,13 +373,7 @@ function CadastroDependentesContent() {
     );
   }
 
-  if (quantidadeDependentes === 0 && planoNome === '') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#74237F]"></div>
-      </div>
-    );
-  }
+  // Removido: loading desnecessário - o FormularioDependentes se adapta à quantidade
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -353,33 +391,14 @@ function CadastroDependentesContent() {
           </div>
         </div>
 
-        {/* Só renderizar FormularioDependentes quando quantidadeDependentes > 0 */}
-        {quantidadeDependentes > 0 ? (
-          <FormularioDependentes
-            quantidadeDependentes={quantidadeDependentes}
-            planoNome={planoNome}
-            customerStripe={customerStripe}
-            onSubmit={handleSubmit}
-            isLoading={isLoading}
-          />
-        ) : (
-          <div className="text-center py-8">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {isLoading ? 'Carregando...' : 'Verificando dependentes...'}
-            </h3>
-            <p className="text-gray-600">
-              {isLoading 
-                ? 'Buscando dependentes já cadastrados...' 
-                : 'Aguarde enquanto verificamos quantos dependentes você pode cadastrar.'
-              }
-            </p>
-          </div>
-        )}
+        {/* Sempre renderizar FormularioDependentes - ele se adapta à quantidade de dependentes */}
+        <FormularioDependentes
+          quantidadeDependentes={quantidadeDependentes}
+          planoNome={planoNome}
+          customerStripe={customerStripe}
+          onSubmit={handleSubmit}
+          isLoading={isLoading}
+        />
       </div>
 
       {/* Modal de Sucesso */}

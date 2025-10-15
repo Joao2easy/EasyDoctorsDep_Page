@@ -183,9 +183,33 @@ export async function getDependentes(clientId: string) {
       throw new Error(`Erro na API: ${response.status}`);
     }
 
-    const data = await response.json();
-    console.log('✅ Dependentes carregados com sucesso da API:', data);
-    return data;
+    // Verificar se há conteúdo antes de fazer parse
+    const responseText = await response.text();
+    console.log('📄 Resposta bruta da API:', responseText);
+    
+    if (!responseText.trim()) {
+      console.log('⚠️ API retornou resposta vazia, assumindo nenhum dependente');
+      return []; // Retorna array vazio se não há dependentes
+    }
+    
+    // Tentar fazer parse do JSON
+    try {
+      const data = JSON.parse(responseText);
+      console.log('✅ Dependentes carregados com sucesso da API:', data);
+      
+      // Verificar se é um array
+      if (Array.isArray(data)) {
+        return data;
+      } else {
+        console.warn('⚠️ API retornou dados não-array, assumindo nenhum dependente');
+        return [];
+      }
+    } catch (parseError) {
+      console.warn('⚠️ Erro ao fazer parse do JSON:', parseError);
+      console.log('📄 Conteúdo da resposta:', responseText);
+      return []; // Fallback: assumir nenhum dependente
+    }
+    
   } catch (error) {
     console.error('Erro ao buscar dependentes:', error);
     throw error;
