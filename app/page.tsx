@@ -119,11 +119,23 @@ export default function HomePage() {
         nome: p.nome_original,
         pessoas: p.pessoas,
         duracao_meses: p.duracao_meses,
-        nivel: p.nivel
+        nivel: p.nivel,
+        preco_total: p.preco_total
       }))
     });
     
-    return filteredPlans[0] || null;
+    // Priorizar o plano de $49,90 para 4 pessoas mensal
+    if (wizardState.people === 4 && wizardState.duration === 1 && wizardState.level === "Premium") {
+      const preferredPlan = filteredPlans.find(plan => plan.preco_total === 49.90);
+      if (preferredPlan) {
+        console.log('✅ Plano preferencial encontrado (4 pessoas, $49,90):', preferredPlan.nome_original);
+        return preferredPlan;
+      }
+    }
+    
+    // Fallback: ordenar por preço e retornar o mais barato
+    const sortedPlans = filteredPlans.sort((a, b) => a.preco_total - b.preco_total);
+    return sortedPlans[0] || null;
   };
 
   const handlePlanSelect = (plan: NormalizedPlan) => {
