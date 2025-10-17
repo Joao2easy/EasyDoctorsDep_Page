@@ -52,20 +52,20 @@ export default function PlanCard({
     if (plan.preco_total === 149.90) {
       // Preferencial ($149.90)
       specificBenefits = [
-        "1 consulta com psicólogo",
-        "1 consulta com especialista"
+        "* 1 consulta com psicólogo",
+        "* 1 consulta com especialista"
       ];
     } else if (plan.preco_total === 299.40) {
       // Premium ($299.40)
       specificBenefits = [
-        "2 consultas com psicólogo",
-        "2 consultas com especialistas"
+        "* 2 consultas com psicólogo",
+        "* 2 consultas com especialistas"
       ];
     } else if (plan.preco_total === 598.80) {
       // VIP ($598.80)
       specificBenefits = [
-        "6 consultas com psicólogo",
-        "6 consultas com especialistas"
+        "* 6 consultas com psicólogo",
+        "* 6 consultas com especialistas"
       ];
     }
     
@@ -81,6 +81,11 @@ export default function PlanCard({
     
     // Para Individual ($29.90), Básico ($49.90) e Avulso ($79.90): apenas base + common
     return [...baseItems, ...commonItems];
+  };
+
+  // Função para verificar se deve mostrar o disclaimer
+  const shouldShowDisclaimer = () => {
+    return [149.90, 299.40, 598.80].includes(plan.preco_total);
   };
 
   const benefits = getBenefits();
@@ -130,6 +135,14 @@ export default function PlanCard({
             </li>
           ))}
         </ul>
+
+        {/* Disclaimer para planos com benefícios específicos */}
+        {shouldShowDisclaimer() && (
+          <div className="text-xs text-gray-600 px-3 py-3 bg-gray-50 rounded-md border border-gray-200">
+            <p className="font-semibold mb-1 text-[10px]">* O benefício está vinculado à assinatura, e não a cada membro individualmente.</p>
+            <p className="text-[10px]">Isso significa que a quantidade de benefícios informada corresponde ao total da assinatura, independentemente do número de membros.</p>
+          </div>
+        )}
 
         <Button
           onClick={() => onSelect(plan)}
