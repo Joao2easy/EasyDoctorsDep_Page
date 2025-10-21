@@ -341,13 +341,15 @@ export default function HomePage() {
                 </p>
               </div>
               <div className="space-y-8">
-                <PlanCard
-                  plan={planSelected}
-                  onSelect={handleConfirmPlan} // Usar a nova função
-                  selected={true}
-                  showExtrasSection={step === 2 as any}
-                  ctaLabel="Continuar"
-                />
+                {planSelected && (
+                  <PlanCard
+                    plan={planSelected}
+                    onSelect={handleConfirmPlan}
+                    selected={true}
+                    showExtrasSection={step === 2}
+                    ctaLabel="Continuar"
+                  />
+                )}
                 
                 {/* Texto informativo sobre dependentes extras */}
                 {/* Remover a seção de "Dependentes Extras" do render principal */}

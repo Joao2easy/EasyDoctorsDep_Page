@@ -11,8 +11,21 @@ import { cn } from "@/lib/utils";
 import { Users } from "lucide-react";
 import { DollarSign } from "lucide-react";
 
-// MAPEAMENTO COMPLETO com stripe_price_id (CORRIGIDO)
-const PLANOS_EXTRAS_MAP = {
+// SOLUÇÃO: Tipar o mapa como Record<string, ...>
+type Extra = {
+  id: string;
+  nome: string;
+  valor: number;
+  max_dependentes: number;
+  stripe_price_id: string;
+};
+
+type ExtrasByPlan = {
+  base_nome: string;
+  extras: Record<number, Extra>;
+};
+
+const PLANOS_EXTRAS_MAP: Record<string, ExtrasByPlan> = {
   "1adf66a5-68a2-4533-a40b-14e149399130": { // Plano base $49.90
     base_nome: "Plano 2 para até 4 pessoas: $49,90",
     extras: {
