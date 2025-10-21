@@ -216,5 +216,34 @@ export async function getDependentes(clientId: string) {
   }
 }
 
+export async function getNumeroDependentes(
+  clientId: string,
+  customerStripe: string,
+  plano: string
+) {
+  const apiUrl = 'https://primary-production-2441.up.railway.app/webhook/numero-dependentes';
+  
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      client_id: clientId,
+      Customer_stripe: customerStripe,
+      plano: plano,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Erro ao buscar número de dependentes: ${response.status}`);
+  }
+
+  const data = await response.json();
+  
+  // CORREÇÃO: Se a API retorna array, pegar o primeiro elemento
+  return Array.isArray(data) ? data[0] : data;
+}
+
 
 

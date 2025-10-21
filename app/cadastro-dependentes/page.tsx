@@ -4,12 +4,21 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import FormularioDependentes from '@/components/FormularioDependentes';
 import { FormularioData } from '@/lib/dependentes-validators';
-import { getDependentes, getPlans } from '@/lib/fetcher'; // NOVO: Import das funções
+import { getDependentes, getPlans, getNumeroDependentes } from '@/lib/fetcher';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Mail, Clock } from "lucide-react";
+
+// Interface para dados da API de dependentes
+interface DadosDependentesAPI {
+  numero_documento_titular: string | null;
+  max_dependentes: number;
+  dependentes_cadastrados: number;
+  dependentes_restantes: number;
+  lista_dependentes: any[];
+}
 
 // Interface para planos da API
 interface PlanoAPI {
@@ -88,127 +97,77 @@ function SuccessModal({ open, onClose, redirectUrl }: SuccessModalProps) {
 
 function CadastroDependentesContent() {
   const searchParams = useSearchParams();
-  const [quantidadeDependentes, setQuantidadeDependentes] = useState(0);
   const [planoNome, setPlanoNome] = useState('');
   const [customerStripe, setCustomerStripe] = useState('');
-  const [clientId, setClientId] = useState(''); // ID do cliente para buscar dependentes
+  const [clientId, setClientId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingPlanos, setIsLoadingPlanos] = useState(true);
-  const [planos, setPlanos] = useState<{[key: string]: PlanoMapeado}>({});
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [redirectUrl, setRedirectUrl] = useState<string | undefined>();
+  
+  // NOVOS ESTADOS da API
+  const [dadosDependentes, setDadosDependentes] = useState<DadosDependentesAPI | null>(null);
 
-  // Carregar planos da API
+  // Carregar dados da API de dependentes
   useEffect(() => {
-    const carregarPlanos = async () => {
+    const carregarDadosDependentes = async () => {
       try {
-        setIsLoadingPlanos(true);
+        setIsLoadingData(true);
         setError(null);
         
-        console.log('🔍 Carregando planos da API...');
+        // Pegar parâmetros da URL
+        const plano = searchParams.get('plano');
+        const customer = searchParams.get('Customer_stripe') || searchParams.get('Custumer_stripe');
+        const client = searchParams.get('client_id');
+
+        if (!plano) {
+          setError('ID do plano não fornecido na URL');
+          return;
+        }
+
+        if (!customer) {
+          setError('ID do customer Stripe não fornecido na URL');
+          return;
+        }
+
+        if (!client) {
+          setError('ID do cliente não fornecido na URL');
+          return;
+        }
+
+        setCustomerStripe(customer);
+        setClientId(client);
+
+        console.log('🔍 Buscando dados de dependentes...');
+        console.log('📦 Parâmetros:', { client, customer, plano });
+        
+        // Buscar dados da nova API
+        const dados = await getNumeroDependentes(client, customer, plano);
+        
+        console.log('✅ Dados recebidos da API:', dados);
+        setDadosDependentes(dados);
+        
+        // Buscar nome do plano (ainda precisa da API de planos)
         const planosData = await getPlans();
+        const planoEncontrado = planosData.find((p: PlanoAPI) => p.id === plano);
         
-        // Converter array para objeto com ID como chave
-        const planosMap = planosData.reduce((acc, plano: PlanoAPI) => {
-          acc[plano.id] = {
-            nome: plano.nome,
-            dependentes: plano.max_dependentes
-          };
-          return acc;
-        }, {} as {[key: string]: PlanoMapeado});
+        if (planoEncontrado) {
+          setPlanoNome(planoEncontrado.nome);
+        } else {
+          setPlanoNome('Plano Selecionado');
+        }
         
-        console.log('✅ Planos carregados com sucesso:', Object.keys(planosMap).length, 'planos');
-        setPlanos(planosMap);
       } catch (error) {
-        console.error('❌ Erro ao carregar planos:', error);
-        setError('Erro ao carregar informações dos planos. Tente novamente.');
+        console.error('❌ Erro ao carregar dados:', error);
+        setError('Erro ao carregar informações. Tente novamente.');
       } finally {
-        setIsLoadingPlanos(false);
+        setIsLoadingData(false);
       }
     };
     
-    carregarPlanos();
-  }, []);
-
-  useEffect(() => {
-    // Só processar se os planos já foram carregados
-    if (isLoadingPlanos) return;
-    
-    const plano = searchParams.get('plano');
-    const dependentes = searchParams.get('dependentes');
-    const customer = searchParams.get('Customer_stripe') || searchParams.get('Custumer_stripe');
-    const client = searchParams.get('client_id');
-
-    if (!plano) {
-      setError('ID do plano não fornecido na URL');
-      return;
-    }
-
-    if (!customer) {
-      setError('ID do customer Stripe não fornecido na URL');
-      return;
-    }
-
-    if (!client) {
-      setError('ID do cliente não fornecido na URL');
-      return;
-    }
-
-    setCustomerStripe(customer);
-    setClientId(client);
-
-    // Verificar se o plano existe no mapeamento da API
-    if (plano in planos) {
-      const planoData = planos[plano];
-      setPlanoNome(planoData.nome);
-      
-      console.log('📋 Plano encontrado:', planoData.nome, 'Max dependentes:', planoData.dependentes);
-      
-      // Buscar dependentes já cadastrados e calcular restantes
-      buscarDependentesECalcularRestantes(client, planoData.dependentes);
-    } else {
-      setError('Plano não encontrado. Verifique se o ID do plano está correto.');
-    }
-  }, [searchParams, planos, isLoadingPlanos]);
-
-  // NOVA FUNÇÃO: Buscar dependentes já cadastrados e calcular restantes
-  const buscarDependentesECalcularRestantes = async (clientId: string, maxDependentes: number) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      console.log('🔍 Buscando dependentes para client_id:', clientId);
-      console.log('📊 Máximo de dependentes permitidos:', maxDependentes);
-      
-      // Buscar dependentes já cadastrados
-      const dependentesJaCadastrados = await getDependentes(clientId);
-      const quantidadeJaCadastrada = dependentesJaCadastrados.length;
-      
-      // Calcular dependentes restantes
-      const dependentesRestantes = Math.max(0, maxDependentes - quantidadeJaCadastrada);
-      
-      console.log('📊 Resumo de dependentes:');
-      console.log(`- Máximo permitido: ${maxDependentes}`);
-      console.log(`- Já cadastrados: ${quantidadeJaCadastrada}`);
-      console.log(`- Restantes para cadastrar: ${dependentesRestantes}`);
-      
-      setQuantidadeDependentes(dependentesRestantes);
-      
-      // Só mostrar erro se o plano permite dependentes mas já foram todos cadastrados
-      if (maxDependentes > 0 && dependentesRestantes === 0) {
-        setError('Você já cadastrou todos os dependentes permitidos pelo seu plano.');
-      }
-      
-    } catch (error) {
-      console.error('Erro ao buscar dependentes:', error);
-      console.log('⚠️ API indisponível, usando quantidade máxima do plano como fallback');
-      // Fallback: usar quantidade máxima do plano (sem mostrar erro na tela)
-      setQuantidadeDependentes(maxDependentes);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    carregarDadosDependentes();
+  }, [searchParams]);
 
   const handleSubmit = async (data: FormularioData) => {
     console.log('🚀 handleSubmit chamado!', data);
@@ -221,20 +180,19 @@ function CadastroDependentesContent() {
       const payload = {
         titular: {
           tipoDocumento: data.titular.tipoDocumento,
-          numeroDocumento: data.titular.numeroDocumento.replace(/\D/g, ''), // Remove pontuação
+          numeroDocumento: data.titular.numeroDocumento.replace(/\D/g, ''),
           genero: data.titular.genero,
         },
         dependentes: data.dependentes.map(dep => {
-          // Extrair código do país do telefone (ex: +5511999999999 -> +55)
-          let codigoPais = "+55"; // Default Brasil
+          let codigoPais = "+55";
           let telefoneSemCodigo = dep.telefone;
           
           if (dep.telefone.startsWith('+55')) {
             codigoPais = "+55";
-            telefoneSemCodigo = dep.telefone.substring(3); // Remove +55
+            telefoneSemCodigo = dep.telefone.substring(3);
           } else if (dep.telefone.startsWith('+1')) {
             codigoPais = "+1";
-            telefoneSemCodigo = dep.telefone.substring(2); // Remove +1
+            telefoneSemCodigo = dep.telefone.substring(2);
           }
           
           return {
@@ -244,33 +202,16 @@ function CadastroDependentesContent() {
             email: dep.email,
             genero: dep.genero,
             tipoDocumento: dep.tipoDocumento,
-            numeroDocumento: dep.numeroDocumento.replace(/\D/g, ''), // Remove pontuação
+            numeroDocumento: dep.numeroDocumento.replace(/\D/g, ''),
           };
         }),
         plano: data.plano,
-        quantidadeDependentes,
+        quantidadeDependentes: dadosDependentes?.max_dependentes || 0,
         customerStripe,
       };
 
       console.log('📦 Payload enviado:', payload);
-      console.log('📱 Telefones processados:', data.dependentes.map(dep => ({
-        original: dep.telefone,
-        processado: payload.dependentes.find(p => p.nome === dep.nome)?.telefone,
-        codigoPais: payload.dependentes.find(p => p.nome === dep.nome)?.codigoPais
-      })));
-      console.log('📄 Documentos processados:', {
-        titular: {
-          original: data.titular.numeroDocumento,
-          processado: payload.titular.numeroDocumento
-        },
-        dependentes: data.dependentes.map(dep => ({
-          nome: dep.nome,
-          original: dep.numeroDocumento,
-          processado: payload.dependentes.find(p => p.nome === dep.nome)?.numeroDocumento
-        }))
-      });
 
-      // Fazer POST diretamente para a API externa
       const apiUrl = 'https://primary-production-2441.up.railway.app/webhook/finalizar-cadastros';
       
       console.log('🌐 Fazendo requisição para:', apiUrl);
@@ -284,7 +225,6 @@ function CadastroDependentesContent() {
       });
 
       console.log('📡 Status da resposta:', response.status);
-      console.log('📡 Headers da resposta:', response.headers);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -292,7 +232,6 @@ function CadastroDependentesContent() {
         throw new Error(`Erro na API: ${response.status} - ${errorText}`);
       }
 
-      // Verificar se há conteúdo na resposta antes de tentar fazer parse JSON
       const responseText = await response.text();
       console.log('📄 Resposta bruta da API:', responseText);
 
@@ -303,7 +242,6 @@ function CadastroDependentesContent() {
           console.log('✅ Resposta da API (JSON):', resultado);
         } catch (parseError) {
           console.warn('⚠️ Resposta não é JSON válido:', responseText);
-          // Se não for JSON, tratar como sucesso se o status for 200
           if (response.status === 200) {
             resultado = { success: true, message: 'Formulário enviado com sucesso!' };
           } else {
@@ -312,7 +250,6 @@ function CadastroDependentesContent() {
         }
       } else {
         console.warn('⚠️ Resposta vazia da API');
-        // Se a resposta estiver vazia mas o status for 200, considerar sucesso
         if (response.status === 200) {
           resultado = { success: true, message: 'Formulário enviado com sucesso!' };
         } else {
@@ -320,15 +257,12 @@ function CadastroDependentesContent() {
         }
       }
       
-      // Verificar se a resposta indica sucesso
       if (resultado.success || resultado.data) {
-        // Capturar URL de redirecionamento - CORRIGIDO para capturar resultado.data.url
         const redirectUrl = resultado.data?.url || resultado.data?.checkout_url || resultado.url;
         setRedirectUrl(redirectUrl);
         
         console.log('🔗 URL de redirecionamento capturada:', redirectUrl);
         
-        // Mostrar modal de sucesso
         setShowSuccessModal(true);
       } else {
         throw new Error(resultado.message || 'Erro desconhecido na API');
@@ -342,13 +276,13 @@ function CadastroDependentesContent() {
     }
   };
 
-  // Loading dos planos
-  if (isLoadingPlanos) {
+  // Loading inicial
+  if (isLoadingData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#74237F] mx-auto mb-4"></div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Carregando informações do plano...</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Carregando informações...</h3>
           <p className="text-gray-600">Aguarde enquanto buscamos os dados do seu plano.</p>
         </div>
       </div>
@@ -373,7 +307,9 @@ function CadastroDependentesContent() {
     );
   }
 
-  // Removido: loading desnecessário - o FormularioDependentes se adapta à quantidade
+  if (!dadosDependentes) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -387,13 +323,11 @@ function CadastroDependentesContent() {
           </p>
           <div className="mt-4 text-sm text-gray-500">
             <p><strong>Plano:</strong> {planoNome}</p>
-            <p><strong>Dependentes:</strong> {quantidadeDependentes}</p>
           </div>
         </div>
 
-        {/* Sempre renderizar FormularioDependentes - ele se adapta à quantidade de dependentes */}
         <FormularioDependentes
-          quantidadeDependentes={quantidadeDependentes}
+          dadosAPI={dadosDependentes}
           planoNome={planoNome}
           customerStripe={customerStripe}
           onSubmit={handleSubmit}

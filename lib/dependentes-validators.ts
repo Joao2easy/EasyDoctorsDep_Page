@@ -76,7 +76,7 @@ export const pessoaSchema = z.object({
   path: ["numeroDocumento"],
 });
 
-// Schema para titular (apenas 3 campos)
+// Schema para titular - REMOVER obrigatoriedade do gênero
 export const titularSchema = z.object({
   tipoDocumento: z.coerce.number()
     .min(0)
@@ -84,10 +84,8 @@ export const titularSchema = z.object({
   numeroDocumento: z.string()
     .min(1, "Número do documento obrigatório")
     .max(50, "Número do documento muito longo"),
-  genero: z.string()
-    .min(1, "Gênero obrigatório"),
+  genero: z.string().optional(), // MUDOU: removido .min(1)
 }).refine((data) => {
-  // Validar apenas se for CPF (tipo 0)
   if (data.tipoDocumento === 0) {
     return validateCPF(data.numeroDocumento);
   }

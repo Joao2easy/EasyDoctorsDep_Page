@@ -10,10 +10,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import PhoneInput from "./PhoneInput";
-import { HelpCircle, Plus, Trash2, Users, Info } from "lucide-react";
+import { HelpCircle, Plus, Trash2, Users, Info, MessageCircle } from "lucide-react";
+
+// NOVA INTERFACE para dados da API
+interface DadosDependentesAPI {
+  numero_documento_titular: string | null;
+  max_dependentes: number;
+  dependentes_cadastrados: number;
+  dependentes_restantes: number;
+  lista_dependentes: any[];
+}
 
 interface FormularioDependentesProps {
-  quantidadeDependentes: number;
+  dadosAPI: DadosDependentesAPI; // MUDOU: recebe dados da API
   planoNome: string;
   customerStripe: string;
   onSubmit: (data: FormularioData) => void;
@@ -61,13 +70,17 @@ const applyDocumentMask = (value: string, tipoDocumento: number) => {
 };
 
 export default function FormularioDependentes({ 
-  quantidadeDependentes, 
+  dadosAPI, // NOVO
   planoNome, 
   customerStripe, 
   onSubmit, 
   isLoading = false 
 }: FormularioDependentesProps) {
-  console.log('🔍 FormularioDependentes - quantidadeDependentes:', quantidadeDependentes);
+  console.log('🔍 FormularioDependentes - dadosAPI:', dadosAPI);
+  
+  // NOVOS ESTADOS baseados na API
+  const temCPFCadastrado = !!dadosAPI.numero_documento_titular;
+  const cpfTitular = dadosAPI.numero_documento_titular || "";
   
   const {
     register,
@@ -82,7 +95,7 @@ export default function FormularioDependentes({
     defaultValues: {
       titular: {
         tipoDocumento: 0,
-        numeroDocumento: "",
+        numeroDocumento: temCPFCadastrado ? formatCPF(cpfTitular) : "",
         genero: "",
       },
       dependentes: [],
@@ -95,8 +108,10 @@ export default function FormularioDependentes({
     name: "dependentes",
   });
 
-  const dependentesAtuais = fields.length;
-  const podeAdicionarMais = dependentesAtuais < quantidadeDependentes;
+  // CONTADOR DINÂMICO: soma dependentes da API + cards adicionados no form
+  const dependentesNoForm = fields.length;
+  const totalDependentes = dadosAPI.dependentes_cadastrados + dependentesNoForm;
+  const podeAdicionarMais = dependentesNoForm < dadosAPI.dependentes_restantes;
 
   const adicionarDependente = () => {
     if (podeAdicionarMais) {
@@ -145,9 +160,14 @@ export default function FormularioDependentes({
     onSubmit(data);
   };
 
+  // Função para abrir WhatsApp
+  const abrirWhatsApp = () => {
+    window.open('https://wa.me/14072867954', '_blank');
+  };
+
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-10">
-      {/* Contador Visual de Dependentes */}
+      {/* Contador Visual de Dependentes - ATUALIZADO */}
       <div className="bg-gradient-to-r from-[#74237F] to-[#8a49a1] rounded-2xl p-6 shadow-lg">
         <div className="flex items-center justify-between text-white">
           <div className="flex items-center space-x-4">
@@ -156,7 +176,7 @@ export default function FormularioDependentes({
             </div>
             <div>
               <h3 className="text-2xl font-bold">
-                {dependentesAtuais} / {quantidadeDependentes}
+                {totalDependentes} / {dadosAPI.max_dependentes}
               </h3>
               <p className="text-white/90 text-sm">
                 Dependentes cadastrados
@@ -164,7 +184,7 @@ export default function FormularioDependentes({
             </div>
           </div>
           <div className="text-right">
-            <p className="text-3xl font-bold">{quantidadeDependentes - dependentesAtuais}</p>
+            <p className="text-3xl font-bold">{dadosAPI.dependentes_restantes - dependentesNoForm}</p>
             <p className="text-white/90 text-sm">Disponíveis</p>
           </div>
         </div>
@@ -173,12 +193,12 @@ export default function FormularioDependentes({
         <div className="mt-4 bg-white/20 rounded-full h-3 overflow-hidden">
           <div 
             className="bg-white h-full rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${quantidadeDependentes > 0 ? (dependentesAtuais / quantidadeDependentes) * 100 : 0}%` }}
+            style={{ width: `${dadosAPI.max_dependentes > 0 ? (totalDependentes / dadosAPI.max_dependentes) * 100 : 0}%` }}
           />
         </div>
       </div>
 
-      {/* Seção Titular */}
+      {/* Seção Titular - ATUALIZADO COM LÓGICA DE BLOQUEIO */}
       <Card className="shadow-xl border-0 bg-white">
         <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-t-lg">
           <div className="flex items-center justify-between">
@@ -191,17 +211,17 @@ export default function FormularioDependentes({
               <div>
                 <CardTitle className="text-xl text-gray-900">Dados do Titular</CardTitle>
                 <CardDescription className="text-gray-600">
-                  Informações do responsável pela assinatura
+                  {temCPFCadastrado 
+                    ? "Dados já cadastrados (não editável)" 
+                    : "Informações do responsável pela assinatura"}
                 </CardDescription>
               </div>
             </div>
-            <div className="group relative">
-              <HelpCircle className="w-5 h-5 text-gray-400 hover:text-[#74237F] cursor-help transition-colors" />
-              <div className="absolute right-0 top-8 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                Estes são os dados do titular da conta, responsável pela assinatura do plano.
-                <div className="absolute -top-1 right-4 w-2 h-2 bg-gray-900 transform rotate-45"></div>
+            {temCPFCadastrado && (
+              <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
+                ✓ Já cadastrado
               </div>
-            </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-8">
@@ -213,6 +233,7 @@ export default function FormularioDependentes({
               </Label>
               <select
                 {...register("titular.tipoDocumento")}
+                disabled={temCPFCadastrado}
                 className="flex h-12 w-full rounded-lg border-2 border-gray-200 bg-background px-4 py-3 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-[#74237F] focus:ring-offset-2 focus:border-[#74237F] disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
               >
                 {tiposDocumento.map((tipo) => (
@@ -236,11 +257,12 @@ export default function FormularioDependentes({
                 placeholder={getDocumentPlaceholder(watch("titular.tipoDocumento"))}
                 value={watch("titular.numeroDocumento")}
                 onChange={(e) => handleDocumentoChange(e.target.value, watch("titular.tipoDocumento"), 0, true)}
+                disabled={temCPFCadastrado}
                 className={`h-12 rounded-lg border-2 px-4 py-3 text-sm transition-colors ${
                   errors.titular?.numeroDocumento 
                     ? "border-destructive focus:ring-destructive" 
                     : "border-gray-200 focus:ring-[#74237F] focus:border-[#74237F]"
-                }`}
+                } ${temCPFCadastrado ? "bg-gray-100" : ""}`}
               />
               {errors.titular?.numeroDocumento && (
                 <p className="text-sm text-destructive font-medium">{errors.titular.numeroDocumento.message}</p>
@@ -254,6 +276,7 @@ export default function FormularioDependentes({
               </Label>
               <select
                 {...register("titular.genero")}
+                disabled={temCPFCadastrado}
                 className="flex h-12 w-full rounded-lg border-2 border-gray-200 bg-background px-4 py-3 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-[#74237F] focus:ring-offset-2 focus:border-[#74237F] disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
               >
                 <option value="">Selecione</option>
@@ -283,7 +306,7 @@ export default function FormularioDependentes({
             <div>
               <CardTitle className="text-xl text-white">Dependentes</CardTitle>
               <CardDescription className="text-white/90">
-                {quantidadeDependentes === 0 
+                {dadosAPI.max_dependentes === 0 
                   ? "Seu plano não inclui dependentes" 
                   : "Adicione os dependentes que deseja cadastrar"}
               </CardDescription>
@@ -292,7 +315,7 @@ export default function FormularioDependentes({
         </CardHeader>
         <CardContent className="p-8">
           {/* Mensagem para plano sem dependentes */}
-          {quantidadeDependentes === 0 && (
+          {dadosAPI.max_dependentes === 0 && (
             <Alert className="bg-blue-50 border-blue-200">
               <Info className="h-5 w-5 text-blue-600" />
               <AlertDescription className="text-blue-800">
@@ -304,9 +327,9 @@ export default function FormularioDependentes({
           )}
 
           {/* Lista de Dependentes */}
-          {quantidadeDependentes > 0 && (
+          {dadosAPI.max_dependentes > 0 && (
             <div className="space-y-6">
-              {fields.length === 0 && (
+              {fields.length === 0 && dadosAPI.dependentes_restantes > 0 && (
                 <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
                   <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500 text-lg font-medium mb-2">
@@ -318,16 +341,41 @@ export default function FormularioDependentes({
                 </div>
               )}
 
+              {/* ALERTA: Limite atingido */}
+              {dadosAPI.dependentes_restantes === 0 && fields.length === 0 && (
+                <Alert className="bg-amber-50 border-amber-200">
+                  <Info className="h-5 w-5 text-amber-600" />
+                  <AlertDescription className="text-amber-800">
+                    <div className="space-y-3">
+                      <p>
+                        <strong>Você atingiu o limite de dependentes para esse plano!</strong>
+                      </p>
+                      <p className="text-sm">
+                        Para adicionar mais dependentes, entre em contato conosco:
+                      </p>
+                      <Button
+                        type="button"
+                        onClick={abrirWhatsApp}
+                        className="bg-green-500 hover:bg-green-600 text-white font-semibold"
+                      >
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        Falar no WhatsApp
+                      </Button>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {fields.map((field, index) => (
                 <div key={field.id} className="border-2 border-gray-100 rounded-xl p-8 space-y-6 bg-gradient-to-br from-gray-50 to-white relative">
                   {/* Header do Card com Botão Remover */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 bg-[#74237F] rounded-full flex items-center justify-center text-white font-bold text-sm">
-                        {index + 1}
+                        {dadosAPI.dependentes_cadastrados + index + 1}
                       </div>
                       <h4 className="text-lg font-semibold text-gray-900">
-                        Dependente {index + 1}
+                        Dependente {dadosAPI.dependentes_cadastrados + index + 1}
                       </h4>
                     </div>
                     
@@ -480,12 +528,27 @@ export default function FormularioDependentes({
                 </div>
               )}
 
-              {/* Mensagem quando atingir o limite */}
-              {!podeAdicionarMais && dependentesAtuais > 0 && (
+              {/* Mensagem quando atingir o limite E já tem cards */}
+              {!podeAdicionarMais && dependentesNoForm > 0 && (
                 <Alert className="bg-amber-50 border-amber-200">
                   <Info className="h-5 w-5 text-amber-600" />
                   <AlertDescription className="text-amber-800">
-                    Você atingiu o limite de <strong>{quantidadeDependentes} dependentes</strong> do seu plano.
+                    <div className="space-y-3">
+                      <p>
+                        <strong>Você atingiu o limite de dependentes disponíveis para cadastro!</strong>
+                      </p>
+                      <p className="text-sm">
+                        Para adicionar mais dependentes, entre em contato conosco:
+                      </p>
+                      <Button
+                        type="button"
+                        onClick={abrirWhatsApp}
+                        className="bg-green-500 hover:bg-green-600 text-white font-semibold"
+                      >
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        Falar no WhatsApp
+                      </Button>
+                    </div>
                   </AlertDescription>
                 </Alert>
               )}
