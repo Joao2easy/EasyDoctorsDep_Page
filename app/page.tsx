@@ -150,6 +150,13 @@ export default function HomePage() {
     });
   };
 
+  // Adicionar uma nova função para o Passo 2
+  const handleConfirmPlan = (plan: NormalizedPlan) => {
+    setPlanSelected(plan);
+    setSelectedPlan(plan);
+    setStep(3); // Ir direto para o Passo 3
+  };
+
   const handleGoToStep3 = () => {
     if (!planSelected) {
       setError("Selecione um plano para continuar");
@@ -172,6 +179,11 @@ export default function HomePage() {
     try {
       setLoading(true);
       setError(null);
+
+      // DEBUG: Verificar o plano selecionado
+      console.log('🔍 Plano selecionado:', planSelected);
+      console.log('🔍 Stripe Price ID:', planSelected.stripe_price_id);
+      console.log('🔍 Preço:', planSelected.preco_total);
 
       // Capturar parâmetros UTM
       const utmParameters = getUTMParameters();
@@ -311,22 +323,41 @@ export default function HomePage() {
                   loading={isLoading}
                   isMostPopular={currentMatch ? isMostPopular(currentMatch) : false}
                   isBestValue={currentMatch ? isBestValue(currentMatch) : false}
+                  showExtrasSection={step === 2 as any}
                 />
               </div>
             </div>
           )}
 
           {/* Step 2: Confirmação */}
-          {step === 2 && planSelected && (
+          {step === 2 && (
             <div className="max-w-2xl mx-auto">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                  Adição de Dependentes
+                </h2>
+                <p className="text-gray-600">
+                  Adicione dependentes extras ao seu plano
+                </p>
+              </div>
               <div className="space-y-8">
                 <PlanCard
                   plan={planSelected}
-                  isMostPopular={isMostPopular(planSelected)}
-                  isBestValue={isBestValue(planSelected)}
-                  ctaLabel="Ir para os dados"
-                  onSelect={handleGoToStep3}
+                  onSelect={handleConfirmPlan} // Usar a nova função
+                  selected={true}
+                  showExtrasSection={step === 2 as any}
+                  ctaLabel="Continuar"
                 />
+                
+                {/* Texto informativo sobre dependentes extras */}
+                {/* Remover a seção de "Dependentes Extras" do render principal */}
+                {/* Manter apenas quando for no passo 2 */}
+                {/* Dependentes Extras - APENAS NO PASSO 2 */}
+                {/* {permiteExtras() && showExtrasSection && ( */}
+                {/*   <div className="border-t pt-4 space-y-4"> */}
+                {/*     {/* ... código dos extras ... */}
+                {/*   </div> */}
+                {/* )} */}
                 
                 <div className="text-center">
                   <Button

@@ -11,6 +11,7 @@ type Props = {
   loading?: boolean;
   isMostPopular?: boolean;
   isBestValue?: boolean;
+  showExtrasSection?: boolean; // NOVA PROP
 };
 
 export default function SelectedPlanPanel({
@@ -19,6 +20,7 @@ export default function SelectedPlanPanel({
   loading = false, 
   isMostPopular = false, 
   isBestValue = false,
+  showExtrasSection = false, // NOVA PROP
 }: Props) {
   if (loading) return <Card className="min-h-[280px]" />;
   
@@ -36,8 +38,9 @@ export default function SelectedPlanPanel({
       isMostPopular={isMostPopular}
       isBestValue={isBestValue}
       ctaLabel="Continuar"
-      onSelect={() => onSelect(plan)}
+      onSelect={onSelect}
       highlight
+      showExtrasSection={showExtrasSection} // NOVA PROP
     />
   );
 }
