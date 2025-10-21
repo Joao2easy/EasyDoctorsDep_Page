@@ -2,16 +2,10 @@ import { z } from "zod";
 
 // Função para validar CPF
 const validateCPF = (cpf: string): boolean => {
-  // Remove caracteres não numéricos
   const cleanCPF = cpf.replace(/\D/g, '');
-  
-  // Verifica se tem 11 dígitos
   if (cleanCPF.length !== 11) return false;
-  
-  // Verifica se todos os dígitos são iguais
   if (/^(\d)\1{10}$/.test(cleanCPF)) return false;
   
-  // Validação do primeiro dígito verificador
   let sum = 0;
   for (let i = 0; i < 9; i++) {
     sum += parseInt(cleanCPF[i]) * (10 - i);
@@ -21,7 +15,6 @@ const validateCPF = (cpf: string): boolean => {
   
   if (parseInt(cleanCPF[9]) !== firstDigit) return false;
   
-  // Validação do segundo dígito verificador
   sum = 0;
   for (let i = 0; i < 10; i++) {
     sum += parseInt(cleanCPF[i]) * (11 - i);
@@ -77,7 +70,6 @@ export const pessoaSchema = z.object({
   if (data.tipoDocumento === 0) {
     return validateCPF(data.numeroDocumento);
   }
-  // Para outros tipos de documento, não validar (aceitar qualquer formato)
   return true;
 }, {
   message: "CPF inválido",
@@ -99,7 +91,6 @@ export const titularSchema = z.object({
   if (data.tipoDocumento === 0) {
     return validateCPF(data.numeroDocumento);
   }
-  // Para outros tipos de documento, não validar (aceitar qualquer formato)
   return true;
 }, {
   message: "CPF inválido",
@@ -109,47 +100,64 @@ export const titularSchema = z.object({
 // Schema para dependente
 export const dependenteSchema = pessoaSchema;
 
-// Schema principal do formulário com validações de duplicatas
+// ATUALIZADO: Schema principal permitindo array vazio de dependentes
 export const formularioSchema = z.object({
   titular: titularSchema,
   dependentes: z.array(dependenteSchema),
   plano: z.string().optional(),
-}).refine((data) => {
-  // Validar que nenhum dependente tem o mesmo documento do titular
+}).superRefine((data, ctx) => {
+  // Só valida duplicatas se houver dependentes
+  if (data.dependentes.length === 0) return;
+  
   const titularDoc = data.titular.numeroDocumento.replace(/\D/g, '');
   
-  for (const dep of data.dependentes) {
+  // Validar documentos vs titular
+  data.dependentes.forEach((dep, index) => {
     const depDoc = dep.numeroDocumento.replace(/\D/g, '');
     if (depDoc && titularDoc && depDoc === titularDoc) {
-      return false;
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "O documento do dependente não pode ser igual ao do titular",
+        path: ["dependentes", index, "numeroDocumento"],
+      });
     }
-  }
-  return true;
-}, {
-  message: "O documento de um dependente não pode ser igual ao do titular",
-  path: ["dependentes"],
-}).refine((data) => {
-  // Validar que não há documentos duplicados entre os dependentes
-  const documentos = data.dependentes
-    .map(dep => dep.numeroDocumento.replace(/\D/g, ''))
-    .filter(doc => doc.length > 0);
+  });
   
-  const documentosUnicos = new Set(documentos);
-  return documentos.length === documentosUnicos.size;
-}, {
-  message: "Existem documentos duplicados entre os dependentes",
-  path: ["dependentes"],
-}).refine((data) => {
-  // Validar que não há e-mails duplicados entre os dependentes
-  const emails = data.dependentes
-    .map(dep => dep.email.toLowerCase().trim())
-    .filter(email => email.length > 0);
+  // Validar documentos duplicados entre dependentes
+  const documentosMap = new Map<string, number>();
+  data.dependentes.forEach((dep, index) => {
+    const depDoc = dep.numeroDocumento.replace(/\D/g, '');
+    if (depDoc.length > 0) {
+      if (documentosMap.has(depDoc)) {
+        const firstIndex = documentosMap.get(depDoc)!;
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Este documento já foi utilizado no dependente ${firstIndex + 1}`,
+          path: ["dependentes", index, "numeroDocumento"],
+        });
+      } else {
+        documentosMap.set(depDoc, index);
+      }
+    }
+  });
   
-  const emailsUnicos = new Set(emails);
-  return emails.length === emailsUnicos.size;
-}, {
-  message: "Existem e-mails duplicados entre os dependentes",
-  path: ["dependentes"],
+  // Validar e-mails duplicados entre dependentes
+  const emailsMap = new Map<string, number>();
+  data.dependentes.forEach((dep, index) => {
+    const depEmail = dep.email.toLowerCase().trim();
+    if (depEmail.length > 0) {
+      if (emailsMap.has(depEmail)) {
+        const firstIndex = emailsMap.get(depEmail)!;
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Este e-mail já foi utilizado no dependente ${firstIndex + 1}`,
+          path: ["dependentes", index, "email"],
+        });
+      } else {
+        emailsMap.set(depEmail, index);
+      }
+    }
+  });
 });
 
 // Tipos TypeScript
@@ -162,7 +170,6 @@ export const tiposDocumento = [
   { value: 0, label: "CPF" },
   { value: 1, label: "PASSAPORTE" },
   { value: 2, label: "SSN" },
-  // { value: 3, label: "ITIN" } // COMENTADO - não mostrar no frontend
 ];
 
 export const paises = [
